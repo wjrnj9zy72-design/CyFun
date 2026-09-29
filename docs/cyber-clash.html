@@ -1,0 +1,1849 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cyber Clash</title>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: game screen. HUD of resources on top, isometric village (SVG) beside a context panel; big-screen tab for projection. Single deliberate game look, colors set explicitly. */
+:root {
+  --sky: #bfe0f2;
+  --sky-deep: #8cc6e6;
+  --board: #fffaf0;
+  --ink: #2a2118;
+  --muted: #6b5d4d;
+  --line: #e2d3b8;
+  --wood: #8a5a2b;
+  --wood-dark: #5e3b17;
+  --gold: #f0b429;
+  --gold-dark: #b7830e;
+  --red: #d2452f;
+  --red-bg: #fbe3dd;
+  --green: #2f8f46;
+  --green-bg: #def2e2;
+  --blue: #2c6ea8;
+  --f-display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --f-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: linear-gradient(var(--sky-deep), var(--sky) 320px); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; padding-block: 16px 60px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; line-height: 1.1; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; color: #fff; -webkit-text-stroke: 1.5px var(--wood-dark); paint-order: stroke fill; text-shadow: 0 3px 0 var(--wood-dark); }
+h2 { font-size: 1.35rem; color: var(--wood-dark); }
+h3 { font-size: 1.08rem; }
+button { font-family: var(--f-body); }
+button:focus-visible, select:focus-visible, input:focus-visible, [data-b]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.brand small { font-weight: 800; color: var(--wood-dark); font-size: 0.85rem; }
+.tabs { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { font-weight: 800; font-size: 0.95rem; padding: 8px 14px; border-radius: 12px; border: 2px solid var(--wood-dark); background: var(--board); color: var(--wood-dark); cursor: pointer; box-shadow: 0 3px 0 var(--wood-dark); }
+.tabs button[aria-selected="true"] { background: var(--gold); }
+
+.banner { margin-top: 14px; padding: 10px 16px; border-radius: 14px; background: var(--wood-dark); color: var(--board); display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; box-shadow: 0 4px 0 #3d260e; }
+.banner b { font-family: var(--f-display); font-weight: 400; font-size: 1.2rem; color: var(--gold); letter-spacing: 0.02em; }
+.status { margin-top: 8px; font-size: 0.82rem; font-weight: 700; color: var(--wood-dark); min-height: 1.2em; }
+
+.hud { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; }
+.hud label { display: grid; gap: 3px; font-size: 0.78rem; font-weight: 800; color: var(--wood-dark); }
+select, input[type="text"], input[type="number"] { font: 700 1rem var(--f-body); color: var(--ink); background: var(--board); border: 2px solid var(--wood); border-radius: 10px; padding: 6px 10px; }
+.hud input[type="text"] { width: 190px; max-width: 100%; }
+.spacer { flex: 1; }
+.pill { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 4px; background: rgba(42, 33, 24, 0.82); color: #fff; border-radius: 999px; font-weight: 800; font-variant-numeric: tabular-nums; border: 2px solid rgba(255, 255, 255, 0.5); }
+.pill svg { width: 32px; height: 32px; flex: none; }
+.pill.neg { color: #ffb4a8; }
+.pill.late { background: var(--red); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.6; } }
+.pill .fly { position: absolute; left: 36px; top: -4px; font: 400 1rem var(--f-display); color: var(--gold); -webkit-text-stroke: 1px var(--wood-dark); paint-order: stroke fill; animation: fly 1.1s ease-out forwards; pointer-events: none; }
+.pill .fly.plus { color: #9ef0a6; }
+@keyframes fly { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-34px); opacity: 0; } }
+.sound { height: 40px; padding: 0 12px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(42, 33, 24, 0.82); color: #fff; font-weight: 800; cursor: pointer; }
+
+.game { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .game { grid-template-columns: minmax(0, 1fr); } }
+.stage-box { position: relative; min-width: 0; border-radius: 22px; overflow: hidden; border: 4px solid var(--wood-dark); box-shadow: 0 6px 0 #3d260e; background: #3fa7d6; }
+.stage-box svg.world { overflow: hidden; }
+.wave { animation: wave 3.4s ease-in-out infinite; transform-box: fill-box; }
+@keyframes wave { 0%, 100% { transform: translateX(0); opacity: 0.15; } 50% { transform: translateX(9px); opacity: 0.85; } }
+.foam { stroke-dasharray: 16 10; animation: march 4s linear infinite; }
+.cloud { animation: cloud 80s linear infinite; }
+@keyframes cloud { from { transform: translateX(-620px); } to { transform: translateX(620px); } }
+.boat { animation: boat 40s ease-in-out infinite alternate; }
+@keyframes boat { from { transform: translate(0, 0); } to { transform: translate(150px, 75px); } }
+.led { animation: led 1.1s steps(2) infinite; }
+@keyframes led { 50% { opacity: 0.2; } }
+.pulse { animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+.wave-flag { animation: flagw 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 0 50%; }
+@keyframes flagw { 50% { transform: skewY(10deg) scaleX(0.85); } }
+#tint { opacity: 0; transition: opacity 0.6s; }
+svg.world.raid #tint { opacity: 1; }
+#tint rect { animation: alarm 1.4s ease-in-out infinite; }
+@keyframes alarm { 50% { opacity: 0.35; } }
+svg.world.raid #layer-walkers { display: none; }
+.shake { animation: shake 0.45s; }
+@keyframes shake { 20% { transform: translate(-7px, 3px); } 40% { transform: translate(6px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -2px); } }
+.raid-intro { position: absolute; left: 0; right: 0; top: 36%; display: grid; justify-items: center; gap: 2px; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(165, 25, 12, 0.94) 12%, rgba(165, 25, 12, 0.94) 88%, transparent); color: #fff; animation: intro 3s ease-in-out forwards; pointer-events: none; }
+.raid-intro b { font: 400 2.1rem/1 var(--f-display); letter-spacing: 0.06em; -webkit-text-stroke: 1.5px #3d0b05; paint-order: stroke fill; }
+.raid-intro span { font-weight: 800; }
+@keyframes intro { 0% { transform: translateX(-110%); } 14% { transform: translateX(0); } 86% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(110%); opacity: 0; } }
+.result .card.event h2 { color: var(--blue); }
+.delta { font: 400 1.7rem var(--f-display); margin: 0; }
+.delta.plus { color: var(--green); } .delta.minus { color: var(--red); }
+.why.power { color: var(--red); }
+/* situations à contrer */
+.result .card.sit { max-width: 640px; width: 100%; text-align: left; justify-items: stretch; max-height: calc(100vh - 32px); overflow-y: auto; }
+.sit-head { display: flex; gap: 14px; align-items: center; }
+.sit-head svg { width: 88px; height: 88px; flex: none; }
+.sit-head > div { display: grid; gap: 2px; min-width: 0; }
+.name { font: 400 1.35rem var(--f-display); color: var(--red); }
+.sit .sub { color: var(--muted); font-weight: 800; }
+.q { margin: 0; font-weight: 800; font-size: 1.02rem; }
+.mock { border-radius: 12px; padding: 10px 12px; font-size: 0.93rem; text-align: left; }
+.mock p { margin: 0; }
+.mock.mail { background: #fff; border: 1px solid #cfd6de; box-shadow: 0 2px 0 #dfe4ea; }
+.mock.mail .mh { display: grid; gap: 2px; font-size: 0.82rem; color: #555; border-bottom: 1px solid #e3e7ec; padding-bottom: 6px; margin-bottom: 6px; overflow-wrap: anywhere; }
+.flink { display: inline-block; margin-top: 6px; color: #1a5fb4; text-decoration: underline; font-weight: 800; overflow-wrap: anywhere; }
+.mock.alert { background: #fff4d6; border: 2px solid #e0a800; }
+.mock.alert b { display: block; margin-bottom: 2px; }
+.mock.call { background: #eef6ff; border: 2px solid #9cc3e6; }
+.mock .who { font-size: 0.8rem; font-weight: 800; color: var(--blue); }
+.bubble { background: #fff; border-radius: 14px; padding: 6px 10px; margin-top: 6px !important; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08); }
+.mock.ransom { background: #140707; color: #ff5a4f; border: 2px solid #ff5a4f; font-family: ui-monospace, Menlo, monospace; text-align: center; }
+.mock.ransom b { font-size: 1.1rem; letter-spacing: 0.05em; }
+.mock.talk .bubble { border: 2px solid var(--line); }
+.choices { display: grid; gap: 8px; }
+.choices button { text-align: left; font-weight: 800; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--wood); background: #fff; color: var(--ink); cursor: pointer; font-size: 0.95rem; box-shadow: 0 3px 0 var(--line); }
+.choices button:hover:not(:disabled) { background: #fff6dc; }
+.choices button:disabled { cursor: default; opacity: 0.7; }
+.choices button.ok { border-color: var(--green); background: var(--green-bg); opacity: 1; }
+.choices button.ko { border-color: var(--red); background: var(--red-bg); opacity: 1; }
+.countdown { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.countdown i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--gold)); transform-origin: left; animation: countdown linear forwards; }
+@keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+#sit-fb h2 { font-size: 1.6rem; } #sit-fb h2.win { color: var(--blue); } #sit-fb h2.lose { color: var(--red); }
+#sit-fb { display: grid; gap: 6px; justify-items: start; }
+.status-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.st { padding: 4px 10px; border-radius: 999px; font-weight: 800; font-size: 0.82rem; background: var(--line); color: var(--wood-dark); }
+.st.def { background: var(--green-bg); color: var(--green); }
+.st.ref { background: #dbeafe; color: var(--blue); }
+.st.ko { background: var(--red-bg); color: var(--red); }
+.st.wait { background: #fff4d6; color: var(--gold-dark); }
+.giant-sit { margin-top: 12px; grid-template-columns: 150px minmax(0, 1fr); align-items: start; }
+.gs-portrait { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.gs-portrait svg { width: 130px; height: 130px; }
+.gs-body { display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 640px) { .giant-sit { grid-template-columns: minmax(0, 1fr); } }
+.mini .steps i.reflex { background: var(--blue); }
+.mini .steps i.wait { background: var(--gold); }
+/* alerte de nuit pendant un raid */
+svg.world #layer-bg, svg.world #layer-world { transition: filter 0.8s; }
+svg.world.raid #layer-bg { filter: brightness(0.45) saturate(0.7) hue-rotate(10deg); }
+svg.world.raid #layer-world { filter: brightness(0.62) saturate(0.85); }
+svg.world.raid .win polygon { fill: #ffe27a; }
+svg.world.raid .cloud { opacity: 0.3; transition: opacity 0.8s; }
+svg.world.raid .win { filter: drop-shadow(0 0 3px #ffb300); }
+.beam { animation: sweep 5s ease-in-out infinite alternate; }
+.beam.b2 { animation-duration: 6.5s; animation-delay: -2s; }
+@keyframes sweep { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+.birds { animation: birds 38s linear infinite; }
+@keyframes birds { from { transform: translate(0, 0); } to { transform: translate(760px, -60px); } }
+.flap { animation: flap 0.5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes flap { to { transform: scaleY(0.4); } }
+.twinkle { animation: twinkle 3.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(0.3); } 50% { opacity: 0.9; transform: scale(1); } }
+.sway { animation: sway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+.aura { animation: aura 1.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes aura { from { opacity: 0.5; transform: scale(0.85); } to { opacity: 1; transform: scale(1.15); } }
+[data-b] .bld { transition: transform 0.18s ease, filter 0.18s ease; }
+[data-b]:hover .bld, [data-b]:focus-visible .bld { transform: translateY(-4px); filter: brightness(1.08) drop-shadow(0 0 5px #fff6c2); }
+/* habillage */
+.crest { width: 54px; height: 60px; flex: none; filter: drop-shadow(0 3px 0 var(--wood-dark)); }
+.brand-row { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.panel { background: linear-gradient(180deg, #fffdf6, #f5e9cf); }
+.pill { background: linear-gradient(180deg, rgba(60, 46, 32, 0.92), rgba(30, 22, 14, 0.92)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 3px 0 rgba(0, 0, 0, 0.25); }
+.tabs button { background: linear-gradient(180deg, #fffdf6, #f1e2c4); }
+.tabs button[aria-selected="true"] { background: linear-gradient(180deg, #ffd35c, #f0b429); }
+.banner { background: linear-gradient(180deg, #6e4620, #4f3113); border: 2px solid #3d260e; }
+svg.world { display: block; width: 100%; height: auto; overflow: visible; }
+svg.world text { font-family: var(--f-display); }
+[data-b] { cursor: pointer; }
+[data-b]:hover .bld { filter: brightness(1.08); }
+.sel-ring { stroke-dasharray: 10 7; animation: march 0.9s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -17; } }
+.pop { animation: pop 0.7s cubic-bezier(0.3, 1.7, 0.5, 1); transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pop { from { transform: scale(0.1); } to { transform: scale(1); } }
+.flame { animation: flick 0.35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+.flame.b { animation-duration: 0.5s; }
+@keyframes flick { from { transform: scale(0.85, 0.8); } to { transform: scale(1.05, 1.15); } }
+.smoke { animation: smoke 2.6s linear infinite; transform-box: fill-box; transform-origin: center; }
+.smoke.d2 { animation-delay: 0.9s; } .smoke.d3 { animation-delay: 1.7s; }
+@keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.75; } to { transform: translate(6px, -40px) scale(1.8); opacity: 0; } }
+.bob { animation: bob 0.3s ease-in-out infinite alternate; }
+@keyframes bob { to { transform: translateY(-3px); } }
+.hitflash { animation: hitflash 0.25s 4 alternate; }
+@keyframes hitflash { to { filter: brightness(1.7) sepia(1) hue-rotate(-40deg) saturate(4); } }
+.bounce { animation: bounce 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes bounce { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.result { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(20, 14, 8, 0.55); padding: 16px; }
+.result .card { background: var(--board); border: 4px solid var(--wood-dark); border-radius: 20px; padding: 18px 22px; text-align: center; display: grid; gap: 10px; justify-items: center; max-width: 380px; animation: pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); box-shadow: 0 8px 0 #3d260e; }
+.result h2 { font-size: 1.9rem; }
+.result h2.win { color: var(--green); } .result h2.lose { color: var(--red); }
+.big-stars { display: flex; gap: 8px; }
+.big-stars svg { width: 58px; height: 58px; }
+.big-stars .on { animation: starin 0.45s cubic-bezier(0.3, 1.8, 0.5, 1) both; }
+@keyframes starin { from { transform: scale(0) rotate(-60deg); } to { transform: scale(1) rotate(0); } }
+.result p { margin: 0; font-weight: 800; }
+
+.panel { background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; box-shadow: 0 5px 0 #3d260e; }
+.panel .sub { color: var(--muted); font-size: 0.9rem; margin: 0; font-weight: 700; }
+.obs { display: grid; gap: 8px; }
+.obs button { text-align: left; font-size: 0.95rem; font-weight: 700; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; display: flex; gap: 10px; align-items: start; }
+.obs button .box { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--wood); display: grid; place-items: center; font-size: 0.85rem; font-weight: 800; }
+.obs button[aria-pressed="true"] { border-color: var(--red); background: var(--red-bg); }
+.obs button[aria-pressed="true"] .box { background: var(--red); border-color: var(--red); color: #fff; }
+.obs button:disabled { cursor: default; }
+.verdict { display: block; font-size: 0.82rem; font-weight: 800; margin-top: 3px; }
+.verdict.good { color: var(--green); } .verdict.bad { color: var(--red); } .verdict.miss { color: var(--gold-dark); }
+
+.def { border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 12px; background: #fff; align-items: start; }
+.def .icon { grid-row: span 3; width: 64px; height: 76px; background: #eef6e4; border-radius: 10px; }
+.def-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.lvstars { display: inline-flex; gap: 2px; }
+.lvstars svg { width: 18px; height: 18px; }
+.lv-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 0.86rem; }
+.lv-list li { display: flex; gap: 8px; align-items: baseline; color: var(--muted); }
+.lv-list li.done { color: var(--ink); font-weight: 800; }
+.lv-list li b { font-variant-numeric: tabular-nums; flex: none; width: 3.1em; color: var(--gold-dark); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font-weight: 800; font-size: 0.92rem; padding: 8px 14px; border-radius: 12px; border: 2px solid rgba(0, 0, 0, 0.25); cursor: pointer; }
+.btn.gold { background: var(--gold); color: var(--wood-dark); box-shadow: 0 3px 0 var(--gold-dark); }
+.btn.green { background: #5cc15f; color: #fff; box-shadow: 0 3px 0 #2f7d33; }
+.btn.plain { background: var(--line); color: var(--wood-dark); }
+.btn.red { background: var(--red); color: #fff; box-shadow: 0 3px 0 #8f2a1b; }
+.btn.blue { background: var(--blue); color: #fff; box-shadow: 0 3px 0 #1b4a73; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.why { font-size: 0.8rem; color: var(--muted); font-weight: 800; }
+
+.raid { display: grid; gap: 10px; }
+.raid .intro { margin: 0; font-weight: 800; }
+.step { border-radius: 12px; padding: 10px 12px; border: 2px solid var(--line); background: #fff; display: grid; gap: 3px; }
+.step .k { font: 400 0.8rem var(--f-display); letter-spacing: 0.04em; color: var(--muted); }
+.step.win { border-color: var(--red); background: var(--red-bg); }
+.step.block { border-color: var(--green); background: var(--green-bg); }
+.step.off { opacity: 0.5; }
+.step .res-line { font-size: 0.86rem; font-weight: 800; }
+.step.win .res-line { color: var(--red); } .step.block .res-line { color: var(--green); }
+.step .hint { font-size: 0.82rem; color: var(--muted); font-weight: 700; }
+
+/* écran géant */
+.giant-head { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.minis { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.mini { background: var(--board); border: 3px solid var(--wood-dark); border-radius: 16px; padding: 8px 10px 10px; display: grid; gap: 4px; box-shadow: 0 4px 0 #3d260e; min-width: 0; }
+.mini .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mini .top b { font: 400 1.05rem var(--f-display); overflow-wrap: anywhere; }
+.mini .top span { font-weight: 800; font-size: 0.85rem; color: var(--blue); white-space: nowrap; }
+.mini .steps { display: flex; gap: 4px; }
+.mini .steps i { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+.mini .steps i.win { background: var(--red); } .mini .steps i.block { background: var(--green); }
+.board-box { margin-top: 16px; background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; overflow-x: auto; box-shadow: 0 5px 0 #3d260e; }
+table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-variant-numeric: tabular-nums; }
+.rank th, .rank td { padding: 9px 12px; border-bottom: 2px solid var(--line); text-align: center; font-weight: 700; }
+.rank th { font: 400 0.85rem var(--f-display); letter-spacing: 0.03em; color: var(--muted); }
+.rank td.l, .rank th.l { text-align: left; }
+.rank tr:last-child td { border-bottom: 0; }
+.rank .pos { font: 400 1.25rem var(--f-display); color: var(--wood); }
+.rank tr:first-child .pos { color: var(--gold-dark); }
+.mini-stars { color: var(--gold-dark); letter-spacing: 1px; }
+.mini-stars .z { color: var(--green); }
+.debrief { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .debrief { grid-template-columns: minmax(0, 1fr); } }
+.debrief .panel { gap: 8px; }
+.debrief ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 0.9rem; }
+.debrief .cnt { font-weight: 800; color: var(--green); }
+.mj-access { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+.mj-access form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 800; color: var(--wood-dark); font-size: 0.9rem; }
+.mj-access input { width: 140px; }
+.link-btn { font: 800 0.85rem var(--f-body); background: none; border: 0; color: var(--wood-dark); text-decoration: underline; cursor: pointer; opacity: 0.7; padding: 4px; }
+.empty { margin-top: 16px; padding: 18px; border: 2px dashed var(--wood); border-radius: 14px; color: var(--muted); background: var(--board); font-weight: 700; }
+
+/* maître du jeu */
+.mj { margin-top: 16px; display: grid; gap: 16px; }
+.mj .row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.mj label { display: grid; gap: 3px; font-size: 0.8rem; font-weight: 800; color: var(--muted); }
+.mj input[type="number"] { width: 90px; }
+.raid-pick { display: grid; gap: 8px; }
+.raid-pick .it { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: #fff; }
+.raid-pick .it .txt { min-width: 0; flex: 1 1 240px; }
+.raid-pick .it .txt div { font-size: 0.85rem; color: var(--muted); font-weight: 700; }
+.raid-pick .it.done { opacity: 0.55; }
+.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 800; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand-row">
+    <svg class="crest" viewBox="0 0 54 60" aria-hidden="true"><path d="M27 2 L51 10 V30 C51 45 40 54 27 58 C14 54 3 45 3 30 V10 Z" fill="#f0b429" stroke="#5e3b17" stroke-width="3"/><path d="M27 9 L44 15 V30 C44 41 37 48 27 51 C17 48 10 41 10 30 V15 Z" fill="#2c6ea8"/><rect x="19" y="27" width="16" height="13" rx="2" fill="#fffaf0"/><path d="M22 27 V22 A5 5 0 0 1 32 22 V27" fill="none" stroke="#fffaf0" stroke-width="3"/><circle cx="27" cy="33" r="2" fill="#2c6ea8"/></svg>
+    <div class="brand">
+      <h1>Cyber Clash</h1>
+      <small>Atelier Boisvert SRL · menuiserie de 22 personnes · défendez-la avec les mesures CyFun Small</small>
+    </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-base" role="tab" aria-selected="true">Ma base</button>
+      <button id="tab-giant" role="tab" aria-selected="false">Écran géant</button>
+      <button id="tab-mj" role="tab" aria-selected="false" hidden>Maître du jeu</button>
+    </nav>
+  </header>
+
+  <div class="banner" id="banner"></div>
+  <div class="status" id="status">Connexion à la partie…</div>
+
+  <section id="view-base">
+    <div class="hud">
+      <label for="sel-table">Table <select id="sel-table"></select></label>
+      <label for="in-name">Équipe <input type="text" id="in-name" maxlength="30" placeholder="Nom d'équipe"></label>
+      <span class="spacer"></span>
+      <span class="pill" id="r-gold"></span>
+      <span class="pill" id="r-troph"></span>
+      <span class="pill" id="r-hq"></span>
+      <span class="pill" id="r-timer" hidden></span>
+      <button class="sound" id="btn-sound" aria-pressed="false">Son : non</button>
+    </div>
+    <div class="game">
+      <div class="stage-box" id="stage">
+        <svg class="world" id="world" viewBox="-395 -95 790 510" role="group" aria-label="Village de l'Atelier Boisvert">
+          <defs>
+            <linearGradient id="g-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc3e8"/><stop offset="1" stop-color="#2a86bd"/></linearGradient>
+            <linearGradient id="g-grass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3d167"/><stop offset="1" stop-color="#76aa42"/></linearGradient>
+            <linearGradient id="g-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7c0" stop-opacity="0.55"/><stop offset="1" stop-color="#fff7c0" stop-opacity="0"/></linearGradient>
+            <radialGradient id="g-glow"><stop offset="0" stop-color="#fff6c2" stop-opacity="0.9"/><stop offset="1" stop-color="#fff6c2" stop-opacity="0"/></radialGradient>
+          </defs>
+          <g id="layer-bg"></g>
+          <g id="layer-world"></g>
+          <g id="layer-walkers" pointer-events="none"></g>
+          <g id="layer-fx" pointer-events="none"></g>
+          <g id="layer-top" pointer-events="none"></g>
+        </svg>
+        <div class="raid-intro" id="raid-intro" hidden></div>
+      </div>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="view-giant" hidden>
+    <div id="giant-body"></div>
+  </section>
+
+  <div class="result" id="result" hidden></div>
+
+  <footer class="mj-access" id="mj-access">
+    <button class="link-btn" id="mj-open" type="button">Accès maître du jeu</button>
+    <form id="mj-form" hidden>
+      <label for="mj-code">Code d'accès</label>
+      <input type="text" id="mj-code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn gold" type="submit">Entrer</button>
+      <span class="why" id="mj-err" role="alert"></span>
+    </form>
+  </footer>
+
+  <section id="view-mj" hidden>
+    <div class="mj" id="mj-body"></div>
+  </section>
+</div>
+
+<script>
+// ================= contenu du jeu =================
+const BUILDINGS = [
+  { id: "presta", name: "Accès prestataire" },
+  { id: "hq", name: "Bureau du gérant" },
+  { id: "compta", name: "Comptabilité" },
+  { id: "wifi", name: "Wi-Fi et routeur" },
+  { id: "srv", name: "Serveur et NAS" },
+  { id: "mail", name: "Messagerie cloud" },
+  { id: "laptop", name: "Voiture du commercial" },
+  { id: "pc", name: "Bureaux" },
+  { id: "atelier", name: "Atelier et CNC" },
+];
+const B_BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b]));
+
+const DEFS = {
+  gouv:     { b: "hq", slot: 0, color: "#f0b429", name: "QG cyber", lv: [
+    [10, "Un responsable cyber est nommé"],
+    [20, "La direction valide une politique et des priorités"],
+    [30, "Un CISO (interne ou CISOaaS) pilote, avec une revue chaque trimestre"]] },
+  incident: { b: "hq", slot: 1, color: "#e67e22", name: "Plan de crise", lv: [
+    [10, "Fiche réflexe : qui appeler, quoi débrancher"],
+    [10, "Contacts hors ligne : prestataire, banque, assureur"],
+    [15, "Exercice de crise réalisé chaque année"]] },
+  access:   { b: "presta", slot: 0, color: "#5d6d7e", name: "Porte des accès", lv: [
+    [10, "Comptes nominatifs, départs désactivés le jour même"],
+    [15, "Plus personne n'est administrateur au quotidien"],
+    [20, "Accès du prestataire fermé par défaut, ouvert sur demande"]] },
+  aware:    { b: "compta", slot: 0, color: "#8e44ad", name: "Caserne sensibilisation", lv: [
+    [10, "Session de sensibilisation annuelle"],
+    [15, "Faux phishing réguliers, signalement en un clic"],
+    [15, "Double vérification de tout changement de RIB"]] },
+  fw:       { b: "wifi", slot: 0, color: "#8a5a2b", name: "Remparts réseau", lv: [
+    [10, "Mots de passe d'usine changés, pare-feu actif"],
+    [10, "Wi-Fi invités séparé du réseau interne"],
+    [20, "Réseau de l'atelier séparé du bureau"]] },
+  backup:   { b: "srv", slot: 0, color: "#2e86c1", name: "Coffre des sauvegardes", lv: [
+    [10, "Sauvegarde quotidienne automatique"],
+    [15, "Une copie hors ligne ou non modifiable"],
+    [15, "Restauration testée chaque trimestre"]] },
+  mfa:      { b: "mail", slot: 0, color: "#16a085", name: "Tour MFA", lv: [
+    [15, "Double authentification sur les comptes admin"],
+    [15, "Double authentification sur la messagerie de tous"],
+    [20, "Double authentification sur tous les accès à distance"]] },
+  device:   { b: "laptop", slot: 0, color: "#e74c3c", name: "Bouclier mobile", lv: [
+    [5, "Code de verrouillage sur portables et smartphones"],
+    [10, "Disques des portables chiffrés"],
+    [15, "Effacement à distance en cas de perte"]] },
+  patch:    { b: "pc", slot: 0, color: "#27ae60", name: "Forge des mises à jour", lv: [
+    [10, "Mises à jour automatiques sur les postes"],
+    [15, "Serveur, NAS et routeur mis à jour chaque mois"],
+    [25, "Systèmes obsolètes remplacés ou isolés"]] },
+  av:       { b: "pc", slot: 1, color: "#c0392b", name: "Canon antivirus", lv: [
+    [10, "Antivirus actif sur tous les postes"],
+    [15, "Les alertes sont lues et traitées"],
+    [25, "EDR surveillé par un prestataire"]] },
+};
+const DEF_IDS = Object.keys(DEFS);
+
+// Phase « Trouvez les failles ». f = 1 : faille ; fix = défense et niveau qui la corrigent.
+const OBS = {
+  hq: [
+    { id: "hq1", f: 1, t: "Le mot de passe du gérant est sur un post-it sous le clavier.", fix: ["aware", 1] },
+    { id: "hq2", f: 0, t: "Les écrans se verrouillent automatiquement après 5 minutes." },
+    { id: "hq3", f: 1, t: "Personne ne sait qui appeler si les ordinateurs sont bloqués.", fix: ["incident", 1] },
+    { id: "hq4", f: 1, t: "« La cybersécurité, c'est le prestataire qui s'en occupe. »", fix: ["gouv", 1] }],
+  mail: [
+    { id: "ma1", f: 1, t: "Pas de double authentification sur la messagerie.", fix: ["mfa", 2] },
+    { id: "ma2", f: 0, t: "Un filtre anti-spam est activé." },
+    { id: "ma3", f: 1, t: "Trois anciens employés ont toujours une boîte mail active.", fix: ["access", 1] }],
+  srv: [
+    { id: "sr1", f: 1, t: "Le NAS n'a pas été mis à jour depuis 2021.", fix: ["patch", 2] },
+    { id: "sr2", f: 1, t: "La seule sauvegarde est un disque USB branché en permanence au serveur.", fix: ["backup", 2] },
+    { id: "sr3", f: 0, t: "Le serveur est dans un local fermé à clé." }],
+  pc: [
+    { id: "pc1", f: 0, t: "Chaque employé a son propre compte Windows." },
+    { id: "pc2", f: 1, t: "L'antivirus affiche des alertes que personne ne lit.", fix: ["av", 2] },
+    { id: "pc3", f: 1, t: "Tout le monde est administrateur de son poste.", fix: ["access", 2] }],
+  wifi: [
+    { id: "wi1", f: 1, t: "Les visiteurs utilisent le même Wi-Fi que le personnel.", fix: ["fw", 2] },
+    { id: "wi2", f: 0, t: "Le Wi-Fi est en WPA2 avec un mot de passe long." },
+    { id: "wi3", f: 1, t: "Le routeur a encore son mot de passe d'usine.", fix: ["fw", 1] }],
+  compta: [
+    { id: "co1", f: 1, t: "Un changement de RIB fournisseur est accepté sur simple email.", fix: ["aware", 3] },
+    { id: "co2", f: 0, t: "Les virements demandent le lecteur de carte de la banque." },
+    { id: "co3", f: 1, t: "La comptable n'a jamais entendu parler de phishing.", fix: ["aware", 1] }],
+  atelier: [
+    { id: "at1", f: 1, t: "Le PC de la CNC tourne sous Windows 7 et est relié au réseau du bureau.", fix: ["fw", 3] },
+    { id: "at2", f: 0, t: "Les plans sont enregistrés sur le serveur." },
+    { id: "at3", f: 1, t: "Les ouvriers branchent leurs clés USB sur le PC de la CNC pour écouter de la musique.", fix: ["aware", 1] }],
+  laptop: [
+    { id: "la1", f: 1, t: "Le disque du portable n'est pas chiffré.", fix: ["device", 2] },
+    { id: "la2", f: 0, t: "Le portable se connecte au bureau par VPN." },
+    { id: "la3", f: 1, t: "Le smartphone qui reçoit les mails pro n'a pas de code.", fix: ["device", 1] }],
+  presta: [
+    { id: "pr1", f: 1, t: "Le prestataire se connecte par bureau à distance ouvert sur Internet, 24 h/24.", fix: ["access", 3] },
+    { id: "pr2", f: 0, t: "Le prestataire a un compte à son nom, non partagé." },
+    { id: "pr3", f: 1, t: "Aucun contrat ne précise ses obligations de sécurité.", fix: ["gouv", 2] }],
+};
+const ALL_OBS = Object.values(OBS).flat();
+
+// Raids : 3 étapes [texte, parades, bâtiment visé]. Une étape est bloquée si UNE parade est atteinte.
+const RAIDS = [
+  { id: "phish", persona: "phil", unit: ["#1f6fb2", "@"], name: "Raid hameçonnage",
+    intro: "Un faux mail « Votre boîte mail est pleine » arrive chez les 22 employés.",
+    steps: [
+      ["Un employé clique et saisit son mot de passe", [["aware", 2]], "pc"],
+      ["L'attaquant se connecte à sa messagerie", [["mfa", 2]], "mail"],
+      ["Il envoie de fausses factures à vos clients depuis votre adresse", [["incident", 2]], "hq"]] },
+  { id: "rib", persona: "vanessa", unit: ["#8e44ad", "€"], name: "Raid faux RIB",
+    intro: "Un fournisseur habituel annonce qu'il « change de banque ».",
+    steps: [
+      ["La comptabilité reçoit un mail crédible avec un nouveau RIB", [], "compta"],
+      ["Le RIB est modifié sans vérification", [["aware", 3]], "compta"],
+      ["Un virement de 48 000 € part vers l'escroc", [["incident", 2]], "hq"]] },
+  { id: "ransom", persona: "crypto", unit: ["#c0392b", "$"], name: "Raid rançongiciel",
+    intro: "Un groupe criminel scanne Internet à la recherche d'accès à distance ouverts.",
+    steps: [
+      ["Il devine le mot de passe de l'accès du prestataire", [["access", 3], ["mfa", 3]], "presta"],
+      ["Il se propage jusqu'au serveur et à l'atelier", [["patch", 2], ["av", 2]], "srv"],
+      ["Tout est chiffré, sauvegardes comprises", [["backup", 2]], "atelier"]] },
+  { id: "laptop", persona: "pickpocket", unit: ["#2c3e50", "PC"], name: "Raid vol de portable",
+    intro: "Le portable du commercial disparaît de sa voiture sur un parking à Liège.",
+    steps: [
+      ["Le portable est volé", [], "laptop"],
+      ["Le voleur lit les devis et le fichier clients", [["device", 2]], "laptop"],
+      ["Il ouvre la messagerie restée connectée", [["device", 3], ["incident", 1]], "mail"]] },
+  { id: "wifi", persona: "visiteur", unit: ["#16a085", "Wi"], name: "Raid Wi-Fi",
+    intro: "Un visiteur patiente dans la salle d'attente avec son ordinateur portable.",
+    steps: [
+      ["Il se connecte au routeur avec le mot de passe d'usine", [["fw", 1]], "wifi"],
+      ["Il atteint le NAS qui n'est plus mis à jour", [["fw", 2], ["patch", 2]], "srv"],
+      ["Il copie les plans et la liste des clients", [["av", 3]], "srv"]] },
+  { id: "usb", persona: "semeur", unit: ["#d35400", "USB"], name: "Raid clé USB",
+    intro: "Une clé USB « Plans 2027 » traîne sur le parking de l'atelier.",
+    steps: [
+      ["Un ouvrier la branche sur le PC de la CNC", [["aware", 1]], "atelier"],
+      ["Le logiciel malveillant s'installe avec les droits admin", [["av", 1], ["access", 2]], "atelier"],
+      ["Il se propage et arrête la production", [["fw", 3], ["patch", 3]], "pc"]] },
+];
+const RAID_BY_ID = Object.fromEntries(RAIDS.map((r) => [r.id, r]));
+
+// Les attaquants, visibles sur la carte et dans les situations
+const PERSONAS = {
+  phil: { name: "Phil l'Hameçonneur", short: "Phil", color: "#1f6fb2", acc: "rod", skin: "#f1c27d" },
+  vanessa: { name: "Vanessa Virement", short: "Vanessa", color: "#8e44ad", acc: "tie", skin: "#e0ac69" },
+  crypto: { name: "Le Crypteur", short: "Crypteur", color: "#c0392b", acc: "mask", skin: "#d8a47a" },
+  pickpocket: { name: "Le Pickpocket", short: "Pickpocket", color: "#2c3e50", acc: "cap", skin: "#f1c27d" },
+  visiteur: { name: "Le Faux Visiteur", short: "Visiteur", color: "#16a085", acc: "laptop", skin: "#c68642" },
+  semeur: { name: "Le Semeur de clés", short: "Semeur", color: "#d35400", acc: "usb", skin: "#f1c27d" },
+};
+
+// Situations à contrer en direct. ok = index de la bonne réaction.
+const SITS = {
+  "phish:0": { scene: { type: "mail", from: "support@micros0ft-365.co", subject: "Votre boîte mail est pleine (98 %)", body: "Cliquez ici dans les 24 heures pour éviter la suppression définitive de vos messages.", link: "https://m365-quota-verif.co/login" },
+    q: "Sophie, à la comptabilité, vous montre ce mail. Que lui conseillez-vous ?",
+    c: ["Cliquer pour vérifier : le logo Microsoft est bien là", "Ne pas cliquer et signaler le mail au responsable cyber", "Transférer le mail à toute l'équipe pour la prévenir"], ok: 1,
+    why: "Expéditeur falsifié (un zéro dans « micros0ft »), urgence artificielle, lien vers un autre domaine. On ne clique pas, on signale. Transférer le mail propage le piège." },
+  "phish:1": { scene: { type: "alert", title: "Connexion inhabituelle", text: "Connexion au compte de Sophie depuis Lagos (Nigeria) à 3 h 12. Mot de passe correct." },
+    q: "Microsoft 365 envoie cette alerte à l'administrateur. Que faites-vous ?",
+    c: ["Ignorer : Sophie est peut-être en voyage", "Attendre lundi pour en parler avec elle", "Changer le mot de passe de Sophie et fermer toutes ses sessions"], ok: 2,
+    why: "Une connexion inhabituelle avec le bon mot de passe signifie que le compte est compromis. Il faut couper l'accès tout de suite, puis activer la double authentification." },
+  "phish:2": { scene: { type: "call", caller: "Garage Lemaire, client", lines: ["Bonjour, j'ai reçu votre facture avec votre nouveau numéro de compte.", "Je peux payer aujourd'hui ?"] },
+    q: "Vous n'avez jamais changé de banque. Que répondez-vous ?",
+    c: ["Lui dire que c'est une fraude, et prévenir tous les clients et la police", "Lui demander de payer la moitié pour tester", "Lui dire de faire comme il veut"], ok: 0,
+    why: "Votre messagerie sert à arnaquer vos clients. Prévenez-les tous, déposez plainte et signalez l'incident sur safeonweb.be." },
+  "rib:1": { scene: { type: "mail", from: "comptabilite@bois-dumont.be", subject: "URGENT : nouvelles coordonnées bancaires", body: "Suite à un changement de banque, merci de mettre à jour notre RIB avant vendredi. Sans cela, nous devrons suspendre les livraisons." },
+    q: "La comptable veut mettre à jour le RIB du fournisseur. Que faites-vous ?",
+    c: ["Répondre au mail pour demander confirmation", "Mettre à jour : c'est l'adresse habituelle du fournisseur", "Appeler le fournisseur au numéro déjà connu, pas celui du mail"], ok: 2,
+    why: "La boîte mail du fournisseur peut être piratée : répondre au mail, c'est demander confirmation à l'escroc. On vérifie par un autre canal, avec un numéro qu'on connaît déjà." },
+  "rib:2": { scene: { type: "call", caller: "Bois Dumont, le vrai fournisseur", lines: ["Bonjour, on n'a toujours pas reçu votre paiement de 48 000 €.", "Nous n'avons jamais changé de banque !"] },
+    q: "Le virement est parti il y a 20 minutes. Que faites-vous ?",
+    c: ["Appeler immédiatement la banque pour bloquer le virement, puis porter plainte", "Envoyer un mail à l'escroc pour réclamer l'argent", "Attendre de voir si l'argent revient"], ok: 0,
+    why: "Chaque minute compte : la banque peut parfois rappeler un virement s'il est signalé très vite. Il faut avoir son numéro sous la main, hors de l'ordinateur." },
+  "ransom:0": { scene: { type: "alert", title: "Journal du pare-feu", text: "4 812 tentatives de connexion en 2 heures sur l'accès bureau à distance du prestataire." },
+    q: "Votre prestataire vous transmet ce rapport. Que décidez-vous ?",
+    c: ["Rien : Internet est toujours bruyant", "Fermer l'accès à distance et appeler le prestataire", "Remplacer le mot de passe par « Boisvert2026! »"], ok: 1,
+    why: "Des milliers d'essais, c'est une attaque par force brute en cours. On ferme la porte d'abord, on discute ensuite. Un mot de passe prévisible ne tiendra pas." },
+  "ransom:1": { scene: { type: "alert", title: "Antivirus du serveur", text: "Outil de vol de mots de passe « Mimikatz » détecté. Action : ignoré (licence expirée)." },
+    q: "Cette alerte apparaît sur l'écran du serveur. Que faites-vous ?",
+    c: ["Redémarrer le serveur pour voir si ça passe", "Isoler le serveur du réseau (débrancher le câble) et appeler à l'aide", "Renouveler la licence de l'antivirus la semaine prochaine"], ok: 1,
+    why: "Un outil de vol de mots de passe sur le serveur signifie qu'un attaquant est déjà à l'intérieur. On isole la machine sans l'éteindre, pour garder les traces, et on déclenche le plan de crise." },
+  "ransom:2": { scene: { type: "ransom", title: "VOS FICHIERS SONT CHIFFRÉS", text: "Payez 3 bitcoins sous 72 heures ou vos données seront publiées." },
+    q: "Cet écran s'affiche sur tous les PC de l'atelier. Que faites-vous ?",
+    c: ["Payer vite pour récupérer les fichiers", "Éteindre et rallumer tous les PC", "Débrancher le réseau, ne pas payer, prévenir le CCB et restaurer les sauvegardes hors ligne"], ok: 2,
+    why: "Payer ne garantit rien et finance le crime. On isole, on signale à safeonweb.be et on restaure depuis une copie hors ligne. Sans cette copie, il n'y a rien à restaurer." },
+  "laptop:1": { scene: { type: "call", caller: "Marc, le commercial", lines: ["On m'a volé mon portable dans la voiture !", "Tous les devis et le fichier clients sont dessus…"] },
+    q: "Quelle est votre première réaction ?",
+    c: ["Lui dire de porter plainte, c'est suffisant", "Changer ses mots de passe et lancer l'effacement à distance du portable", "Attendre : il va peut-être le retrouver"], ok: 1,
+    why: "Il faut couper les accès du portable avant que le voleur ne les utilise. Un disque chiffré aurait protégé le fichier clients (RGPD)." },
+  "laptop:2": { scene: { type: "alert", title: "Nouvelle connexion", text: "La messagerie de Marc vient d'être ouverte depuis un appareil inconnu." },
+    q: "Marc est avec vous au bureau. Que faites-vous ?",
+    c: ["Déconnecter toutes les sessions de Marc et changer son mot de passe", "Envoyer un SMS à Marc pour lui demander si c'est lui", "Rien : c'est sûrement son nouveau téléphone"], ok: 0,
+    why: "La messagerie restée connectée sur le portable volé est une porte ouverte. On ferme toutes les sessions à distance." },
+  "wifi:0": { scene: { type: "talk", text: "Bonjour ! Vous avez le code Wi-Fi ? Et c'est quoi, ce petit boîtier avec les lumières ?" },
+    q: "Un visiteur inconnu attend dans la salle d'attente. Que lui répondez-vous ?",
+    c: ["Lui donner le code du Wi-Fi du personnel, c'est plus simple", "Lui montrer le routeur, il a l'air de s'y connaître", "Refuser poliment : le Wi-Fi interne est réservé au personnel"], ok: 2,
+    why: "Le Wi-Fi du personnel donne accès à tout le réseau interne. Les visiteurs doivent avoir un Wi-Fi séparé, ou rien." },
+  "wifi:1": { scene: { type: "alert", title: "Message du NAS", text: "Connexion administrateur depuis l'appareil « DESKTOP-X7Q » (inconnu) à 10 h 42." },
+    q: "Le NAS vous envoie ce message. Que faites-vous ?",
+    c: ["Redémarrer le NAS", "Couper l'appareil inconnu du réseau et changer le mot de passe admin du NAS", "Attendre le passage du prestataire jeudi"], ok: 1,
+    why: "Un appareil inconnu connecté en administrateur, c'est une intrusion. On le coupe et on change les mots de passe." },
+  "wifi:2": { scene: { type: "alert", title: "Réseau saturé", text: "40 Go envoyés vers Internet depuis ce matin. Internet est très lent." },
+    q: "Tout le monde se plaint de la lenteur. Que faites-vous ?",
+    c: ["Couper la connexion Internet et chercher l'appareil qui envoie ces données", "Appeler l'opérateur pour augmenter le débit", "Attendre la fin du transfert"], ok: 0,
+    why: "Un gros envoi inhabituel vers Internet, c'est souvent un vol de données en cours. On coupe d'abord, on cherche ensuite." },
+  "usb:0": { scene: { type: "talk", text: "Chef, j'ai trouvé une clé « Plans 2027 » sur le parking ! Je la branche sur le PC de la CNC pour voir à qui elle est ?" },
+    q: "Que répondez-vous à l'ouvrier ?",
+    c: ["Oui, c'est pour la rendre à son propriétaire", "Non : on ne la branche nulle part et on la remet au responsable cyber", "Plutôt sur ton PC personnel, c'est plus sûr"], ok: 1,
+    why: "Une clé trouvée est un appât classique. On ne branche jamais une clé inconnue, sur aucun appareil." },
+  "usb:1": { scene: { type: "alert", title: "Contrôle de compte Windows", text: "Voulez-vous autoriser cette application à apporter des modifications à votre appareil ? Éditeur : inconnu." },
+    q: "Cette fenêtre s'ouvre sur le PC de la CNC. Que faites-vous ?",
+    c: ["Oui, sinon la clé ne fonctionnera pas", "Oui, puis lancer l'antivirus juste après", "Non, et prévenir le responsable"], ok: 2,
+    why: "Accepter donne tous les droits au programme. Sans droits d'administrateur au quotidien, cette fenêtre demanderait un mot de passe que l'ouvrier n'a pas." },
+  "usb:2": { scene: { type: "alert", title: "Postes du bureau", text: "Les PC ralentissent et des fichiers changent de nom un à un." },
+    q: "Que faites-vous ?",
+    c: ["Continuer à travailler en attendant", "Formater soi-même tous les PC", "Isoler le PC de la CNC et les postes touchés, puis lancer le plan de crise"], ok: 2,
+    why: "L'infection se propage : on isole au plus vite, et le plan de crise dit qui appeler. Un réseau séparé pour l'atelier aurait contenu l'attaque." },
+};
+
+// Cartes événement : effet calculé pour chaque table au moment du tirage.
+const EVENTS = [
+  { id: "nis2", name: "Un client passe sous NIS2", text: "Votre plus gros client industriel exige la preuve que la cybersécurité est pilotée.",
+    rule: "QG cyber niveau 2 ou plus : contrat renouvelé et élargi (+25 €). Sinon : contrat perdu (−15 €).",
+    f: (lv) => (lv.gouv || 0) >= 2 ? 25 : -15 },
+  { id: "assur", name: "Renouvellement de l'assurance cyber", text: "L'assureur envoie son questionnaire avant de fixer la prime.",
+    rule: "Sauvegardes niveau 2 et plan de crise niveau 2 : prime réduite (+15 €). Sinon : prime majorée (−20 €).",
+    f: (lv) => (lv.backup || 0) >= 2 && (lv.incident || 0) >= 2 ? 15 : -20 },
+  { id: "subside", name: "Subvention régionale", text: "La Région finance les premiers pas en cybersécurité des PME.",
+    rule: "+20 € pour tous, +10 € de plus si un responsable cyber est nommé (QG niveau 1).",
+    f: (lv) => 20 + ((lv.gouv || 0) >= 1 ? 10 : 0) },
+  { id: "presta", name: "Le prestataire IT fait faillite", text: "Un nouveau prestataire doit tout reprendre en urgence.",
+    rule: "Porte des accès niveau 1 (comptes nominatifs et documentés) : reprise propre (0 €). Sinon : −20 €.",
+    f: (lv) => (lv.access || 0) >= 1 ? 0 : -20 },
+  { id: "eol", name: "Fin de support d'un système", text: "Les correctifs de sécurité s'arrêtent pour une partie du parc informatique.",
+    rule: "Forge des mises à jour niveau 3 : déjà anticipé (0 €). Sinon : remplacement en urgence (−15 €).",
+    f: (lv) => (lv.patch || 0) >= 3 ? 0 : -15 },
+  { id: "audit", name: "Audit CyFun Small d'un grand client", text: "Le client vérifie vos mesures de base avant de vous référencer.",
+    rule: "7 défenses construites ou plus : fournisseur référencé (+30 €). Sinon : −10 €.",
+    f: (lv) => DEF_IDS.filter((d) => (lv[d] || 0) >= 1).length >= 7 ? 30 : -10 },
+];
+const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+
+const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, upkeep: 2, escalate: true, reflex: true, react: 40, loss: [0, 10, 25, 45] };
+const INITIAL_STATE = { phase: "reco", current: null, step: 0, power: 0, powers: {}, played: [], results: {}, events: [], lastEvent: null, timer: null, cfg: DEFAULT_CFG };
+
+// ================= utilitaires =================
+const $ = (id) => document.getElementById(id);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const defLabel = (d, l) => `${DEFS[d].name} niv. ${l}`;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, REDUCED ? 0 : ms));
+
+let db = null;
+let state = clone(INITIAL_STATE);
+let tables = {};
+// Réglages propres à l'onglet : deux onglets du même navigateur peuvent jouer deux tables différentes.
+const tabStore = {
+  get(k) { try { const v = sessionStorage.getItem(k); if (v !== null) return v; } catch {} return store.get(k); },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch {} store.set(k, v); },
+};
+let myTable = tabStore.get("clash-table") || "t1";
+try { sessionStorage.setItem("clash-table", myTable); } catch {}
+let selected = tabStore.get("clash-building") || "hq";
+let confirmReset = false;
+let justBuilt = null;      // { d, at } pour l'animation de construction
+let pendingFire = new Set(); // étapes en cours d'animation : pas encore de feu
+let seen = { raid: null, step: 0, table: null };
+let resultShownFor = null;
+
+function normState(s) {
+  const o = Object.assign(clone(INITIAL_STATE), s || {});
+  o.cfg = Object.assign(clone(DEFAULT_CFG), (s && s.cfg) || {});
+  if (!Array.isArray(o.cfg.loss) || o.cfg.loss.length !== 4) o.cfg.loss = DEFAULT_CFG.loss.slice();
+  o.played = Array.isArray(o.played) ? o.played : [];
+  o.results = o.results || {};
+  o.timer = o.timer && o.timer.end ? o.timer : null;
+  o.powers = o.powers || {};
+  o.events = Array.isArray(o.events) ? o.events : [];
+  o.power = Number(o.power) || 0;
+  return o;
+}
+function tbl(id) { const t = tables[id] || {}; return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {}, answers: t.answers || {} }; }
+function tableIds() { return Array.from({ length: state.cfg.tables }, (_, i) => "t" + (i + 1)); }
+
+// ================= règles =================
+function spent(levels) {
+  let s = 0;
+  DEF_IDS.forEach((d) => { for (let i = 0; i < (levels[d] || 0); i++) s += DEFS[d].lv[i][0]; });
+  return s;
+}
+function reco(flags) {
+  let good = 0, bad = 0;
+  ALL_OBS.forEach((o) => { if (flags[o.id]) (o.f ? good++ : bad++); });
+  return { good, bad, total: ALL_OBS.filter((o) => o.f).length };
+}
+function recoBonus(flags) {
+  if (state.phase === "reco") return 0;
+  const r = reco(flags);
+  return Math.max(0, (r.good - r.bad) * state.cfg.bonus);
+}
+const totalLv = (lv) => DEF_IDS.reduce((s, d) => s + (lv[d] || 0), 0);
+// Résilience (CyFun « Répondre » et « Restaurer ») : sauvegardes niv. 2 et plan de crise niv. 1 divisent les pertes par deux.
+const resilient = (lv) => (lv.backup || 0) >= 2 && (lv.incident || 0) >= 1;
+function raidLoss(stars, lv) { const l = state.cfg.loss[stars] || 0; return resilient(lv) ? Math.round(l / 2) : l; }
+function raidIncome(rid, tid) {
+  const res = state.results[rid] && state.results[rid][tid], lv = (res && res.lv) || {};
+  return state.cfg.revenue - raidLoss(res ? res.s : 3, lv) - state.cfg.upkeep * totalLv(lv);
+}
+function income(tid) { return state.played.reduce((s, rid) => s + raidIncome(rid, tid), 0); }
+function eventsTotal(tid) { return state.events.reduce((s, e) => s + ((e.deltas && e.deltas[tid]) || 0), 0); }
+function budget(tid) { const t = tbl(tid); return state.cfg.start + recoBonus(t.flags) + income(tid) + eventsTotal(tid) - spent(t.levels); }
+function trophies(tid) {
+  return state.played.reduce((s, rid) => { const res = state.results[rid] && state.results[rid][tid]; return s + (res ? (3 - res.s) * 10 : 0); }, 0);
+}
+function cap(d, levels) { return d === "gouv" ? 3 : Math.min(3, (levels.gouv || 0) + 1); }
+function minLevel(tid, d) {
+  const last = state.played[state.played.length - 1];
+  const res = last && state.results[last] && state.results[last][tid];
+  return res && res.lv ? (res.lv[d] || 0) : 0;
+}
+function canUpgrade(tid, d) {
+  const lv = tbl(tid).levels, l = lv[d] || 0, next = DEFS[d].lv[l];
+  return state.phase === "build" && !!next && l < cap(d, lv) && next[0] <= budget(tid);
+}
+// power : les raids plus tardifs exigent des défenses plus hautes (plafond niveau 3).
+const need = (l, power) => Math.min(3, l + (power || 0));
+const reqLabel = (b, power) => defLabel(b[0], need(b[1], power));
+const reflexOn = () => state.cfg.reflex !== false;
+const sitFor = (raid, i) => (reflexOn() ? SITS[raid.id + ":" + i] : null) || null;
+function stepDefense(raid, i, levels, power) { return raid.steps[i][1].filter(([d, l]) => (levels[d] || 0) >= need(l, power)); }
+function reflexOk(raid, i, answers) { const sit = sitFor(raid, i), a = answers && answers[raid.id + ":" + i]; return !!(sit && a && a.c === sit.ok); }
+const byLabel = (b, power) => b[0] === "reflex" ? "le réflexe de l'équipe" : reqLabel(b, power);
+// une étape est stoppée par une défense suffisante OU par la bonne réaction de l'équipe
+function resolve(raid, levels, power = 0, answers = {}) {
+  for (let i = 0; i < raid.steps.length; i++) {
+    const by = stepDefense(raid, i, levels, power);
+    if (by.length) return { stars: i, blockedAt: i, by };
+    if (reflexOk(raid, i, answers)) return { stars: i, blockedAt: i, by: [["reflex", 0]] };
+  }
+  return { stars: 3, blockedAt: -1, by: [] };
+}
+// bâtiments en feu pendant le raid en cours
+function firesFor(levels) {
+  const f = new Set();
+  if (state.phase !== "raid" || !RAID_BY_ID[state.current]) return f;
+  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels, state.power, tbl(myTable).answers);
+  for (let i = 0; i < state.step; i++) {
+    if (r.blockedAt >= 0 && i >= r.blockedAt) break;
+    if (!pendingFire.has(i)) f.add(raid.steps[i][2]);
+  }
+  return f;
+}
+
+// ================= son =================
+let audio = null, soundOn = store.get("clash-sound") === "1";
+function tone(f, d = 0.12, type = "square", vol = 0.05, delay = 0) {
+  if (!soundOn) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = audio.currentTime + delay, o = audio.createOscillator(), g = audio.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch {}
+}
+const SFX = {
+  build() { tone(523, 0.1); tone(659, 0.1, "square", 0.05, 0.08); tone(784, 0.18, "square", 0.05, 0.16); },
+  coin() { tone(988, 0.08, "triangle", 0.07); tone(1319, 0.14, "triangle", 0.07, 0.07); },
+  flag() { tone(440, 0.07, "triangle", 0.06); },
+  march() { [0, 0.22, 0.44, 0.66, 0.88, 1.1].forEach((t) => tone(98, 0.08, "sawtooth", 0.04, t)); },
+  block() { tone(1200, 0.18, "sine", 0.08); tone(1800, 0.25, "sine", 0.06, 0.08); },
+  hit() { tone(90, 0.4, "sawtooth", 0.09); tone(60, 0.5, "square", 0.05, 0.06); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, "square", 0.05, i * 0.12)); },
+  lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.05, i * 0.18)); },
+  alarm() { [0, 0.3, 0.6].forEach((t) => { tone(880, 0.15, "square", 0.05, t); tone(660, 0.15, "square", 0.05, t + 0.15); }); },
+};
+$("btn-sound").onclick = () => {
+  soundOn = !soundOn; store.set("clash-sound", soundOn ? "1" : "0"); renderSoundBtn(); if (soundOn) SFX.coin();
+};
+function renderSoundBtn() { $("btn-sound").textContent = "Son : " + (soundOn ? "oui" : "non"); $("btn-sound").setAttribute("aria-pressed", String(soundOn)); }
+
+// ================= dessin isométrique =================
+const TW = 84, TH = 42; // taille d'une case
+const iso = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2];
+const P = (a) => a.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]
+    .map((v) => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f));
+  return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+const OUT = 'stroke="#2a2118" stroke-opacity="0.45" stroke-width="1.2" stroke-linejoin="round"';
+function corners(X, Y, s) { return { N: [X, Y - s * TH], E: [X + s * TW, Y], S: [X, Y + s * TH], Wc: [X - s * TW, Y] }; }
+const up = (p, h) => [p[0], p[1] - h];
+function box(X, Y, s, h, col, top) {
+  const { N, E, S, Wc } = corners(X, Y, s);
+  return `<polygon points="${P([Wc, S, up(S, h), up(Wc, h)])}" fill="${shade(col, -0.28)}" ${OUT}/>` +
+    `<polygon points="${P([S, E, up(E, h), up(S, h)])}" fill="${shade(col, -0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), up(S, h), up(Wc, h)])}" fill="${top || shade(col, 0.18)}" ${OUT}/>`;
+}
+function roof(X, Y, s, h, r, col) {
+  const { N, E, S, Wc } = corners(X, Y, s), a = [X, Y - h - r];
+  return `<polygon points="${P([up(Wc, h), up(N, h), a])}" fill="${shade(col, 0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), a])}" fill="${shade(col, 0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(Wc, h), up(S, h), a])}" fill="${shade(col, -0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(S, h), up(E, h), a])}" fill="${col}" ${OUT}/>` + tiles(up(Wc, h), up(S, h), a) + tiles(up(S, h), up(E, h), a);
+}
+// rangées de tuiles : lignes parallèles au bas du pan de toit
+function tiles(A, B, apex) {
+  let o = "";
+  for (const t of [0.25, 0.5, 0.75]) {
+    const p1 = [A[0] + (apex[0] - A[0]) * t, A[1] + (apex[1] - A[1]) * t], p2 = [B[0] + (apex[0] - B[0]) * t, B[1] + (apex[1] - B[1]) * t];
+    o += `<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="#000" stroke-opacity="0.18" stroke-width="1.2"/>`;
+  }
+  return o;
+}
+function faceR(X, Y, s, u1, u2, t1, t2, fill) {
+  const S = [X, Y + s * TH], E = [X + s * TW, Y], p = (u, t) => [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function faceL(X, Y, s, u1, u2, t1, t2, fill) {
+  const A = [X - s * TW, Y], S = [X, Y + s * TH], p = (u, t) => [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function windowsRow(X, Y, s, n, t1, t2, fill) {
+  let out = "";
+  for (let i = 0; i < n; i++) {
+    const u1 = (i + 0.25) / n, u2 = (i + 0.75) / n;
+    out += faceR(X, Y, s, u1, u2, t1, t2, fill) + faceL(X, Y, s, u1, u2, t1, t2, shade(fill, -0.25));
+  }
+  return `<g class="win">${out}</g>`;
+}
+
+// Chaque bâtiment renvoie son dessin et sa hauteur (pour l'étiquette et le feu).
+function drawBuilding(id, X, Y) {
+  switch (id) {
+    case "hq": return { h: 100, svg: box(X, Y, 0.75, 44, "#efe0bf") + windowsRow(X, Y, 0.75, 3, 16, 32, "#5a86b0") +
+      faceL(X, Y, 0.75, 0.42, 0.58, 0, 22, "#6b4423") + roof(X, Y, 0.75, 44, 34, "#c0392b") +
+      `<line x1="${X}" y1="${Y - 78}" x2="${X}" y2="${Y - 104}" stroke="#4a3520" stroke-width="2.5"/>` +
+      `<polygon class="wave-flag" points="${P([[X, Y - 104], [X + 20, Y - 98], [X, Y - 92]])}" fill="#f0b429" stroke="#8a5a2b"/>` };
+    case "mail": return { h: 96, svg: box(X, Y, 0.55, 66, "#e3f4f1", "#1f8a8a") +
+      [14, 30, 46].map((t) => faceR(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#1f8a8a") + faceL(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#176b6b")).join("") +
+      `<line x1="${X}" y1="${Y - 66}" x2="${X}" y2="${Y - 94}" stroke="#4a4a4a" stroke-width="2.5"/>` +
+      `<ellipse cx="${X + 9}" cy="${Y - 86}" rx="9" ry="5" fill="#f5f5f5" stroke="#4a4a4a" transform="rotate(-25 ${X + 9} ${Y - 86})"/>` +
+      faceR(X, Y, 0.55, 0.3, 0.7, 52, 62, "#fff") };
+    case "srv": return { h: 62, svg: box(X, Y, 0.6, 60, "#3a4a5c", "#566779") +
+      [10, 20, 30, 40, 50].map((t, i) => faceR(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#24303d") + `<g class="led" style="animation-delay:${i * 0.23}s">${faceR(X, Y, 0.6, 0.12 + (i % 3) * 0.08, 0.2 + (i % 3) * 0.08, t, t + 4, "#56d364")}</g>`).join("") +
+      [10, 20, 30, 40, 50].map((t) => faceL(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#1b2530")).join("") };
+    case "wifi": return { h: 96, svg: box(X, Y, 0.42, 24, "#e8eef5") + roof(X, Y, 0.42, 24, 14, "#2c6ea8") +
+      `<line x1="${X}" y1="${Y - 36}" x2="${X}" y2="${Y - 88}" stroke="#4a4a4a" stroke-width="3"/>` +
+      `<circle cx="${X}" cy="${Y - 90}" r="4" fill="#d2452f"/>` +
+      [10, 18, 26].map((r, k) => `<path class="pulse" style="animation-delay:${k * 0.3}s" d="M ${X - r} ${Y - 84 - r * 0.5} Q ${X} ${Y - 94 - r} ${X + r} ${Y - 84 - r * 0.5}" fill="none" stroke="#2c6ea8" stroke-width="2.5" stroke-linecap="round" opacity="${1 - r / 40}"/>`).join("") };
+    case "compta": return { h: 72, svg: box(X, Y, 0.65, 40, "#f1e6fa") + windowsRow(X, Y, 0.65, 2, 14, 28, "#6c8fbf") +
+      roof(X, Y, 0.65, 40, 30, "#8e5bb5") +
+      `<circle cx="${X + 26}" cy="${Y - 30}" r="9" fill="#f0b429" stroke="#8a5a2b" stroke-width="1.5"/><text x="${X + 26}" y="${Y - 26}" font-size="11" text-anchor="middle" fill="#5e3b17">€</text>` };
+    case "laptop": {
+      const w = (u) => { const A = [X - 0.55 * TW, Y], S = [X, Y + 0.55 * TH]; return [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u]; };
+      const w2 = (u) => { const S = [X, Y + 0.55 * TH], E = [X + 0.55 * TW, Y]; return [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u]; };
+      return { h: 44, svg: box(X, Y - 6, 0.55, 14, "#d35400") + box(X, Y - 20, 0.32, 16, "#f5b041", "#e59866") +
+        `<g class="win">${faceR(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#a9d6f5") + faceL(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#7fb3d5")}</g>` +
+        [w(0.2), w(0.8), w2(0.25), w2(0.8)].map(([x, y]) => `<ellipse cx="${x}" cy="${y - 3}" rx="6" ry="7" fill="#222"/>`).join("") };
+    }
+    case "pc": return { h: 40, svg: box(X, Y, 0.8, 36, "#f7f7f2", "#27ae60") + windowsRow(X, Y, 0.8, 4, 12, 26, "#7fb3d5") +
+      faceL(X, Y, 0.8, 0.46, 0.54, 0, 20, "#6b4423") };
+    case "atelier": return { h: 84, svg: box(X, Y, 0.85, 36, "#d9b99b") +
+      faceL(X, Y, 0.85, 0.3, 0.7, 0, 26, "#6b4423") + faceL(X, Y, 0.85, 0.3, 0.7, 12, 14, "#4a2f17") +
+      `<g class="win">${faceR(X, Y, 0.85, 0.15, 0.4, 16, 28, "#9cc3dd") + faceR(X, Y, 0.85, 0.6, 0.85, 16, 28, "#9cc3dd")}</g>` +
+      roof(X, Y, 0.85, 36, 24, "#8b4513") + box(X + 22, Y - 40, 0.09, 30, "#7a4a2a") +
+      `<g><circle class="smoke" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d2" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d3" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/></g>` };
+    case "presta": {
+      const E = [X + 0.38 * TW, Y];
+      return { h: 44, svg: box(X, Y, 0.38, 34, "#c8d0d8", "#6c7a89") + `<g class="win">${faceR(X, Y, 0.38, 0.2, 0.8, 14, 26, "#7fb3d5")}</g>` +
+        `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#fff" stroke-width="6" stroke-linecap="round"/>` +
+        `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#d2452f" stroke-width="6" stroke-dasharray="7 7"/>` +
+        `<rect x="${E[0] - 2}" y="${E[1] - 16}" width="6" height="18" fill="#4a4a4a"/>` };
+    }
+  }
+  return { h: 30, svg: box(X, Y, 0.6, 30, "#ccc") };
+}
+
+function emblem(d, x, y) {
+  const c = DEFS[d].color, st = `stroke="${c}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const g = {
+    gouv: `<path d="M-5 3 L-5 -3 L-2.5 0 L0 -4 L2.5 0 L5 -3 L5 3 Z" fill="${c}"/>`,
+    incident: `<rect x="-1.2" y="-5" width="2.4" height="6" rx="1" fill="${c}"/><circle cx="0" cy="3.6" r="1.4" fill="${c}"/>`,
+    access: `<circle cx="-2.2" cy="0" r="2.6" ${st}/><path d="M0.4 0 H5.5 M4 0 V2.5 M2.4 0 V2" ${st}/>`,
+    aware: `<path d="M-5 -3 L0 -2 L5 -3 L5 3.5 L0 4.5 L-5 3.5 Z M0 -2 V4.5" ${st}/>`,
+    fw: `<path d="M-5 -3.5 H5 V3.5 H-5 Z M-5 0 H5 M-1.5 -3.5 V0 M2 0 V3.5 M-3 0 V3.5" ${st}/>`,
+    backup: `<path d="M3.8 -1.5 A4.2 4.2 0 1 0 3 2.8" ${st}/><path d="M3.8 -4.2 V-1 H0.8" ${st}/>`,
+    mfa: `<rect x="-4" y="-0.5" width="8" height="5.5" rx="1" fill="${c}"/><path d="M-2.4 -0.5 V-2.4 A2.4 2.4 0 0 1 2.4 -2.4 V-0.5" ${st}/>`,
+    device: `<rect x="-2.8" y="-4.6" width="5.6" height="9.2" rx="1.2" ${st}/><circle cx="0" cy="2.6" r="0.8" fill="${c}"/>`,
+    patch: `<path d="M-4 4 L1.5 -1.5" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/><path d="M1 -3.5 A2.8 2.8 0 1 0 4.2 -0.2" ${st}/>`,
+    av: `<circle cx="0" cy="0" r="3.6" ${st}/><path d="M0 -6 V-2.5 M0 2.5 V6 M-6 0 H-2.5 M2.5 0 H6" ${st}/>`,
+  }[d];
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="7.5" fill="#fffaf0" stroke="#2a2118" stroke-width="1.2"/>${g}</g>`;
+}
+function tower(d, lv, X, Y, pop) {
+  if (!lv) return `<polygon points="${P(Object.values(corners(X, Y, 0.24)))}" fill="rgba(42,33,24,0.12)" stroke="#2a2118" stroke-opacity="0.45" stroke-dasharray="4 3"/>`;
+  const col = DEFS[d].color, h = 10 + 12 * lv, r = 14 + 3 * lv;
+  let s;
+  if (d === "av") {
+    // canon : socle, tourelle et fût qui s'allonge avec le niveau
+    const bh = 10 + 4 * lv, len = 12 + 5 * lv;
+    s = box(X, Y, 0.26, bh, "#6b6f75") + `<ellipse cx="${X}" cy="${Y - bh - 2}" rx="15" ry="9" fill="${col}" stroke="#2a2118" stroke-opacity="0.5"/>` +
+      `<line x1="${X}" y1="${Y - bh - 4}" x2="${X - len}" y2="${Y - bh - 4 + len * 0.45}" stroke="#2a2118" stroke-width="${6 + lv}" stroke-linecap="round"/>` +
+      `<line x1="${X}" y1="${Y - bh - 4}" x2="${X - len}" y2="${Y - bh - 4 + len * 0.45}" stroke="${shade(col, -0.2)}" stroke-width="${3 + lv}" stroke-linecap="round"/>`;
+    s += emblem(d, X + 2, Y - bh + 6);
+    s += `<circle cx="${X + 18}" cy="${Y - bh - 6}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 18}" y="${Y - bh - 2}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+    return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+  }
+  if (d === "backup") {
+    // coffre-fort : large et trapu, cerclé d'or
+    const vh = 12 + 7 * lv;
+    s = box(X, Y, 0.28, vh, col, shade(col, 0.3));
+    for (let k = 1; k <= lv; k++) s += faceR(X, Y, 0.28, 0, 1, (vh * k) / (lv + 1) - 1.5, (vh * k) / (lv + 1) + 1.5, "#f0b429") + faceL(X, Y, 0.28, 0, 1, (vh * k) / (lv + 1) - 1.5, (vh * k) / (lv + 1) + 1.5, "#b7830e");
+    s += emblem(d, X, Y + 0.28 * TH - vh * 0.5);
+    s += `<circle cx="${X + 18}" cy="${Y - vh + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 18}" y="${Y - vh + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+    return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+  }
+  s = box(X, Y, 0.22, h, col) + roof(X, Y, 0.22, h, r, shade(col, -0.35));
+  if (lv >= 2) s += faceR(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118") + faceL(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118");
+  s += emblem(d, X, Y + 0.22 * TH - Math.min(h * 0.45, 16));
+  if (lv >= 3) s = `<ellipse class="aura" cx="${X}" cy="${Y}" rx="30" ry="15" fill="url(#g-glow)"/>` + s;
+  if (lv >= 3) s += `<line x1="${X}" y1="${Y - h - r}" x2="${X}" y2="${Y - h - r - 14}" stroke="#4a3520" stroke-width="2"/><polygon points="${P([[X, Y - h - r - 14], [X + 12, Y - h - r - 10], [X, Y - h - r - 6]])}" fill="#f0b429"/>`;
+  s += `<circle cx="${X + 16}" cy="${Y - h + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 16}" y="${Y - h + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+  return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+}
+
+function fire(X, Y) {
+  const f = (dx, sc, cls) => `<path class="flame ${cls}" d="M ${X + dx} ${Y} q ${-8 * sc} ${-10 * sc} 0 ${-26 * sc} q ${8 * sc} ${14 * sc} 0 ${26 * sc} z" fill="#ff8c1a"/>` +
+    `<path class="flame ${cls}" d="M ${X + dx} ${Y} q ${-4 * sc} ${-6 * sc} 0 ${-14 * sc} q ${4 * sc} ${8 * sc} 0 ${14 * sc} z" fill="#ffe14d"/>`;
+  return `<g>${f(-12, 1, "")}${f(4, 1.3, "b")}${f(16, 0.9, "")}` +
+    `<circle class="smoke" cx="${X}" cy="${Y - 30}" r="8" fill="#555"/><circle class="smoke d2" cx="${X + 6}" cy="${Y - 30}" r="8" fill="#555"/></g>`;
+}
+
+const PLOT = {};
+BUILDINGS.forEach((b, i) => { PLOT[b.id] = [1.5 + 3 * (i % 3), 1.5 + 3 * Math.floor(i / 3)]; });
+const SLOTS = [[1.08, 0.12], [0.12, 1.08]];
+function towerGrid(d) { const [gx, gy] = PLOT[DEFS[d].b], [ox, oy] = SLOTS[DEFS[d].slot]; return [gx + ox, gy + oy]; }
+function towerTop(d, lv) {
+  const [X, Y] = iso(...towerGrid(d)), l = Math.max(lv, 1);
+  if (d === "av") { const bh = 10 + 4 * l, len = 12 + 5 * l; return [X - len, Y - bh - 4 + len * 0.45]; }
+  if (d === "backup") return [X, Y - (12 + 7 * l)];
+  return [X, Y - (10 + 12 * l) - 10];
+}
+
+function wall(lv, part) {
+  if (!lv) return "";
+  const a = 0.22, b = 8.78;
+  const pts = part === "back" ? [iso(a, b), iso(a, a), iso(b, a)] : [iso(a, b), iso(b, b), iso(b, a)];
+  const line = (dy, col, w, extra = "") => `<polyline points="${P(pts.map((p) => [p[0], p[1] - dy]))}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${extra}/>`;
+  let s = "";
+  if (lv === 1) {
+    s += line(0, "#5e3b17", 3) + line(7, "#8a5a2b", 3) + line(3.5, "#8a5a2b", 5, 'stroke-dasharray="3 12"');
+  } else {
+    const h = lv === 2 ? 9 : 15;
+    for (let y = 0; y < h; y += 2) s += line(y, "#7c838b", 10);
+    s += line(h, "#c3c8ce", 9) + line(h + 2, "#8d949c", 3, 'stroke-dasharray="6 6"');
+    if (lv === 3) {
+      const cs = part === "back" ? [[a, b], [a, a], [b, a]] : [[b, b]];
+      cs.forEach(([gx, gy]) => { const [X, Y] = iso(gx, gy); s += box(X, Y, 0.32, 36, "#9aa1a9") + roof(X, Y, 0.32, 36, 18, "#5e6670"); });
+    }
+  }
+  return s;
+}
+
+// Décor fixe : touffes d'herbe et arbres
+const TUFTS = (() => { let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; const t = []; for (let i = 0; i < 70; i++) t.push([0.3 + rnd() * 8.4, 0.3 + rnd() * 8.4]); return t; })();
+const FLOWERS = (() => { let seed = 11; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; const cols = ["#ffffff", "#ffd23f", "#ff7aa2", "#b58cff"]; const t = []; for (let i = 0; i < 26; i++) { const gx = 0.4 + rnd() * 8.2, gy = 0.4 + rnd() * 8.2; if (Math.abs(gx % 3 - 1.5) > 1.2 || Math.abs(gy % 3 - 1.5) > 1.2) t.push([gx, gy, cols[i % 4]]); } return t; })();
+const TREES = [[0.35, 3], [0.35, 6.1], [3, 0.35], [6.1, 0.35], [8.6, 4.5], [4.5, 8.6], [2.9, 2.9], [6.05, 6.05]];
+function tree(X, Y, k) {
+  return `<ellipse cx="${X}" cy="${Y + 2}" rx="12" ry="5" fill="rgba(0,0,0,0.18)"/><rect x="${X - 2.5}" y="${Y - 14}" width="5" height="15" fill="#6b4423"/>` +
+    `<g class="sway" style="animation-delay:${-k * 0.7}s"><circle cx="${X}" cy="${Y - 22}" r="${12 + (k % 2) * 3}" fill="#3f8f3a" stroke="#2a5e26" stroke-width="1.5"/><circle cx="${X + 5}" cy="${Y - 30}" r="${7 + (k % 2) * 2}" fill="#4aa142"/><circle cx="${X - 4}" cy="${Y - 26}" r="5" fill="#6cc25c"/></g>`;
+}
+
+// emprise au sol et hauteur de chaque bâtiment, pour l'ombre portée (soleil en haut à gauche)
+const FOOT = { hq: [0.75, 70], mail: [0.55, 80], srv: [0.6, 60], wifi: [0.42, 40], compta: [0.65, 60], laptop: [0.55, 30], pc: [0.8, 36], atelier: [0.85, 55], presta: [0.38, 34] };
+function castShadow(X, Y, sz, h) {
+  const { N, E, S, Wc } = corners(X, Y, sz), d = [h * 0.55, h * 0.1], m = (p) => [p[0] + d[0], p[1] + d[1]];
+  return `<polygon points="${P([N, m(N), m(E), m(S), S, Wc])}" fill="rgba(20,40,10,0.22)"/>`;
+}
+function drawWorld(levels, o = {}) {
+  const fires = o.fires || new Set(), mini = !!o.mini, fw = levels.fw || 0;
+  const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
+  let s = "";
+  // île
+  s += `<polygon points="${P([c[3], c[2], up(c[2], -30), up(c[3], -30)])}" fill="#8b5e34"/>`;
+  s += `<polygon points="${P([c[2], c[1], up(c[1], -30), up(c[2], -30)])}" fill="#a8733f"/>`;
+  s += `<polygon points="${P([c[3], c[2], up(c[2], -8), up(c[3], -8)])}" fill="#5f8f34"/><polygon points="${P([c[2], c[1], up(c[1], -8), up(c[2], -8)])}" fill="#6ea03d"/>`;
+  s += `<polygon points="${P(c)}" fill="${mini ? "#86b94f" : "url(#g-grass)"}"/>`;
+  if (!mini) FLOWERS.forEach(([gx, gy, col]) => { const [X, Y] = iso(gx, gy); s += `<circle cx="${X}" cy="${Y}" r="2.4" fill="${col}"/><circle cx="${X + 5}" cy="${Y + 2}" r="2" fill="${col}"/>`; });
+  // chemins
+  const road = (a1, a2, b1, b2) => `<polygon points="${P([iso(a1, b1), iso(a2, b1), iso(a2, b2), iso(a1, b2)])}" fill="#d9c08a" opacity="0.85"/>`;
+  [3, 6].forEach((v) => { s += road(v - 0.16, v + 0.16, 0.4, 8.6) + road(0.4, 8.6, v - 0.16, v + 0.16); });
+  if (!mini) [3, 6].forEach((v) => {
+    const a = iso(v, 0.4), b = iso(v, 8.6), c = iso(0.4, v), d = iso(8.6, v);
+    s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#bfa36b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>`;
+    s += `<line x1="${c[0]}" y1="${c[1]}" x2="${d[0]}" y2="${d[1]}" stroke="#bfa36b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>`;
+  });
+  if (!mini) TUFTS.forEach(([gx, gy]) => { const [X, Y] = iso(gx, gy); s += `<path d="M ${X - 3} ${Y} l 2 -5 l 1 5 l 2 -4 l 1 4" fill="none" stroke="#5f8f34" stroke-width="1.3"/>`; });
+  s += wall(fw, "back");
+  // parcelles
+  BUILDINGS.forEach((b) => {
+    const [X, Y] = iso(...PLOT[b.id]);
+    s += `<polygon points="${P(Object.values(corners(X, Y, 1.3)))}" fill="#79ab44" stroke="#6c9a3b"/>`;
+    if (!mini) {
+      s += `<polygon points="${P(Object.values(corners(X, Y, 0.98)))}" fill="#cdbf9f" stroke="#a8977a" stroke-width="1.5"/>`;
+      const [gx, gy] = PLOT[b.id];
+      for (const t of [-0.49, 0, 0.49]) {
+        s += `<line x1="${iso(gx + t, gy - 0.98)[0]}" y1="${iso(gx + t, gy - 0.98)[1]}" x2="${iso(gx + t, gy + 0.98)[0]}" y2="${iso(gx + t, gy + 0.98)[1]}" stroke="#b3a383" stroke-width="1"/>`;
+        s += `<line x1="${iso(gx - 0.98, gy + t)[0]}" y1="${iso(gx - 0.98, gy + t)[1]}" x2="${iso(gx + 0.98, gy + t)[0]}" y2="${iso(gx + 0.98, gy + t)[1]}" stroke="#b3a383" stroke-width="1"/>`;
+      }
+    }
+    if (!mini && o.sel === b.id) s += `<polygon class="sel-ring" points="${P(Object.values(corners(X, Y, 1.32)))}" fill="rgba(240,180,41,0.18)" stroke="#f0b429" stroke-width="3"/>`;
+  });
+  // objets triés par profondeur
+  const items = [];
+  TREES.forEach(([gx, gy], k) => { const [X, Y] = iso(gx, gy); items.push({ d: gx + gy, svg: tree(X, Y, k) }); });
+  BUILDINGS.forEach((b) => {
+    const [gx, gy] = PLOT[b.id], [X, Y] = iso(gx, gy), bd = drawBuilding(b.id, X, Y);
+    b._h = bd.h;
+    items.push({ d: gx + gy, svg: `<g data-b="${b.id}" ${mini ? "" : `tabindex="0" role="button" aria-label="${esc(b.name)}"`}>${castShadow(X, Y, ...FOOT[b.id])}<g class="bld" id="${mini ? "" : "bld-" + b.id}">${bd.svg}</g>${fires.has(b.id) ? fire(X, Y - bd.h * 0.55) : ""}</g>` });
+  });
+  DEF_IDS.forEach((d) => {
+    const [gx, gy] = towerGrid(d), [X, Y] = iso(gx, gy);
+    const pop = !mini && justBuilt && justBuilt.d === d && Date.now() - justBuilt.at < 900;
+    items.push({ d: gx + gy + 0.01, svg: `<g data-b="${DEFS[d].b}">${tower(d, levels[d] || 0, X, Y, pop)}</g>` });
+  });
+  items.sort((a, b) => a.d - b.d).forEach((it) => { s += it.svg; });
+  s += wall(fw, "front");
+  // étiquettes
+  if (!mini) {
+    BUILDINGS.forEach((b) => {
+      const [X, Y] = iso(...PLOT[b.id]), ty = Y - b._h - 14, ly = Y + 44;
+      const isSel = o.sel === b.id;
+      s += `<text x="${X}" y="${ly}" text-anchor="middle" font-size="14" fill="${isSel ? "#f0b429" : "#fff"}" stroke="#2a2118" stroke-width="3.5" paint-order="stroke" pointer-events="none">${esc(b.name)}</text>`;
+      const badge = o.badges && o.badges[b.id];
+      if (badge) s += `<g class="bounce" pointer-events="none"><circle cx="${X}" cy="${ty - 22}" r="11" fill="${badge.color}" stroke="#fff" stroke-width="2"/><text x="${X}" y="${ty - 17}" text-anchor="middle" font-size="13" fill="#fff">${badge.text}</text></g>`;
+    });
+  }
+  return s;
+}
+
+// ================= écriture =================
+let chain = Promise.resolve();
+function queue(fn) {
+  if (!db) return;
+  chain = chain.then(fn).catch((e) => setStatus(e && e.code === "invalid_argument"
+    ? "Vous n'avez pas les droits d'écriture : demandez un accès Contributeur à l'organisateur."
+    : "Enregistrement impossible pour l'instant, réessayez dans un instant."));
+}
+function saveTable(tid) { const body = Object.assign(tbl(tid), { updatedAt: new Date().toISOString() }); queue(() => db.collection("tables").doc(tid).set(clone(body))); }
+function saveState() { const body = clone(state); queue(() => db.doc("game/state").set(body)); }
+const timers = {};
+function later(k, fn) { clearTimeout(timers[k]); timers[k] = setTimeout(() => { delete timers[k]; fn(); }, 700); }
+function mine() {
+  if (!tables[myTable]) tables[myTable] = { name: "", flags: {}, levels: {} };
+  const t = tables[myTable]; t.flags = t.flags || {}; t.levels = t.levels || {}; return t;
+}
+function setStatus(m) { $("status").textContent = m; }
+
+// ================= icônes =================
+const ICON = {
+  gold: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#f0b429" stroke="#b7830e" stroke-width="3"/><circle cx="16" cy="16" r="7" fill="none" stroke="#b7830e" stroke-width="2"/></svg>`,
+  troph: `<svg viewBox="0 0 32 32"><path d="M9 5h14v7a7 7 0 0 1-14 0z" fill="#f0b429" stroke="#b7830e" stroke-width="2"/><path d="M9 7H4a5 5 0 0 0 6 7M23 7h5a5 5 0 0 1-6 7" fill="none" stroke="#b7830e" stroke-width="2"/><rect x="13" y="19" width="6" height="5" fill="#b7830e"/><rect x="9" y="24" width="14" height="4" rx="1" fill="#8a5a2b"/></svg>`,
+  hq: `<svg viewBox="0 0 32 32"><path d="M4 15 16 5l12 10" fill="#c0392b" stroke="#7b241c" stroke-width="2"/><rect x="7" y="14" width="18" height="13" fill="#efe0bf" stroke="#7b5a3a" stroke-width="2"/><rect x="14" y="19" width="5" height="8" fill="#6b4423"/></svg>`,
+  timer: `<svg viewBox="0 0 32 32"><circle cx="16" cy="18" r="11" fill="#fff" stroke="#2c6ea8" stroke-width="3"/><path d="M16 18V11M16 18l5 3" stroke="#2a2118" stroke-width="2.5" stroke-linecap="round"/><rect x="12" y="2" width="8" height="4" rx="1" fill="#2c6ea8"/></svg>`,
+};
+const STAR = (on, cls = "") => `<svg viewBox="0 0 24 24" class="${cls}"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21.1l1.4-7L2 9.3l7-.8z" fill="${on ? "#f0b429" : "#d9ccb4"}" stroke="${on ? "#b7830e" : "#b3a58c"}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+
+// ================= bandeau & HUD =================
+function renderBanner() {
+  const s = state, n = s.played.length;
+  let html;
+  if (s.phase === "reco") html = `<b>Phase 1 · Trouvez les failles</b><span>Touchez chaque bâtiment et marquez ce qui vous semble dangereux. Faille trouvée : +${s.cfg.bonus} €. Fausse alerte : −${s.cfg.bonus} €.</span>`;
+  else if (s.phase === "build") html = `<b>Construction${n ? ` · ${n} raid${n > 1 ? "s" : ""} subi${n > 1 ? "s" : ""}` : ""}</b><span>Renforcez votre base avant le prochain raid. Le QG cyber limite le niveau des autres défenses.</span>`;
+  else if (s.phase === "raid") html = `<b>Alerte · ${esc(RAID_BY_ID[s.current]?.name || "")}</b><span>Votre base est attaquée. La construction est bloquée.</span>`;
+  else html = `<b>Fin de la partie</b><span>Direction l'écran géant pour le classement et le débrief.</span>`;
+  $("banner").innerHTML = html;
+}
+let lastGold = null, flyOk = 0;
+function renderHUD() {
+  const b = budget(myTable), t = tbl(myTable);
+  const g = $("r-gold");
+  g.innerHTML = `${ICON.gold}<span>${b} €</span>`;
+  g.title = `Départ ${state.cfg.start} € · failles ${recoBonus(t.flags)} € · raids (revenus − pertes − entretien) ${income(myTable)} € · événements ${eventsTotal(myTable)} € · défenses −${spent(t.levels)} €`;
+  g.classList.toggle("neg", b < 0);
+  if (lastGold !== null && lastGold !== b && Date.now() - flyOk < 1500) {
+    const f = document.createElement("span");
+    f.className = "fly" + (b > lastGold ? " plus" : ""); f.textContent = (b > lastGold ? "+" : "−") + Math.abs(b - lastGold) + " €";
+    g.appendChild(f);
+  }
+  lastGold = b;
+  $("r-troph").innerHTML = `${ICON.troph}<span>${trophies(myTable)}</span>`;
+  $("r-hq").innerHTML = `${ICON.hq}<span>QG niv. ${t.levels.gouv || 0}</span>`;
+  renderTimer();
+}
+let alarmed = null;
+function renderTimer() {
+  const el = $("r-timer"), tm = state.timer;
+  if (!tm) { el.hidden = true; if ($("giant-timer")) $("giant-timer").hidden = true; return; }
+  const left = Math.max(0, Math.round((tm.end - Date.now()) / 1000));
+  el.hidden = false;
+  el.classList.toggle("late", left === 0);
+  el.innerHTML = `${ICON.timer}<span>${left === 0 ? "Temps écoulé !" : `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</span>`;
+  if (left === 0 && alarmed !== tm.end) { alarmed = tm.end; SFX.alarm(); }
+  const g = $("giant-timer");
+  if (g) { g.innerHTML = el.innerHTML; g.className = el.className; g.hidden = el.hidden; }
+}
+setInterval(renderTimer, 500);
+
+// ================= ma base =================
+function renderTableSelect() {
+  const sel = $("sel-table");
+  if (Number(myTable.slice(1)) > state.cfg.tables) myTable = "t1";
+  sel.innerHTML = "";
+  for (let i = 1; i <= state.cfg.tables; i++) {
+    const o = document.createElement("option");
+    o.value = "t" + i; o.textContent = "Table " + i + (tables["t" + i]?.name ? " · " + tables["t" + i].name : "");
+    sel.appendChild(o);
+  }
+  sel.value = myTable;
+}
+$("sel-table").addEventListener("change", (e) => {
+  myTable = e.target.value; tabStore.set("clash-table", myTable);
+  lastGold = null; closeModal(); renderBase(true); checkRaidProgress();
+});
+$("in-name").addEventListener("input", (e) => { mine().name = e.target.value; later("n", () => saveTable(myTable)); });
+
+function badges() {
+  const t = tbl(myTable), out = {};
+  BUILDINGS.forEach((b) => {
+    if (state.phase === "reco") {
+      const n = (OBS[b.id] || []).filter((o) => t.flags[o.id]).length;
+      if (n) out[b.id] = { color: "#d2452f", text: String(n) };
+    } else if (state.phase === "build") {
+      if (DEF_IDS.some((d) => DEFS[d].b === b.id && canUpgrade(myTable, d))) out[b.id] = { color: "#3ca63f", text: "▲" };
+    }
+  });
+  return out;
+}
+function renderVillage() {
+  const levels = tbl(myTable).levels;
+  $("world").classList.toggle("raid", state.phase === "raid");
+  $("layer-world").innerHTML = drawWorld(levels, { sel: selected, fires: firesFor(levels), badges: badges() });
+}
+function selectBuilding(id) {
+  if (!B_BY_ID[id]) return;
+  selected = id; tabStore.set("clash-building", selected); renderVillage(); renderPanel();
+}
+$("layer-world").addEventListener("click", (e) => { const g = e.target.closest("[data-b]"); if (g) selectBuilding(g.dataset.b); });
+$("layer-world").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const g = e.target.closest("[data-b]"); if (g) { e.preventDefault(); selectBuilding(g.dataset.b); setTimeout(() => $("layer-world").querySelector(`[data-b="${g.dataset.b}"][tabindex]`)?.focus(), 0); }
+});
+
+function towerIcon(d, lv) {
+  return `<svg class="icon" viewBox="-36 -78 72 92">${tower(d, Math.max(1, lv), 0, 0, false)}</svg>`;
+}
+function renderPanel() {
+  const p = $("panel");
+  if (state.phase === "raid" && RAID_BY_ID[state.current]) { p.innerHTML = raidHTML(RAID_BY_ID[state.current], tbl(myTable).levels, state.step); return; }
+  const b = B_BY_ID[selected] || BUILDINGS[0], t = tbl(myTable);
+  let html = `<h2>${esc(b.name)}</h2>`;
+  const obs = OBS[b.id] || [];
+  if (state.phase === "reco") {
+    html += `<p class="sub">Inspection : touchez les constats qui sont des failles.</p><div class="obs">`;
+    obs.forEach((o) => { html += `<button data-obs="${o.id}" aria-pressed="${!!t.flags[o.id]}"><span class="box">${t.flags[o.id] ? "!" : ""}</span><span>${esc(o.t)}</span></button>`; });
+    html += `</div>`;
+  } else {
+    html += `<details${state.phase === "build" && !state.played.length ? " open" : ""}><summary class="sub" style="cursor:pointer">Constats de l'inspection</summary><div class="obs" style="margin-top:8px">`;
+    obs.forEach((o) => {
+      const flagged = !!t.flags[o.id];
+      let v;
+      if (o.f && flagged) v = `<span class="verdict good">Faille trouvée · se corrige avec ${esc(defLabel(...o.fix))}</span>`;
+      else if (o.f) v = `<span class="verdict miss">Faille manquée · se corrige avec ${esc(defLabel(...o.fix))}</span>`;
+      else if (flagged) v = `<span class="verdict bad">Fausse alerte : c'est une bonne pratique</span>`;
+      else v = `<span class="verdict good">Bonne pratique</span>`;
+      html += `<button disabled aria-pressed="${flagged}"><span class="box">${flagged ? "!" : ""}</span><span>${esc(o.t)}${v}</span></button>`;
+    });
+    html += `</div></details>`;
+  }
+  const defs = DEF_IDS.filter((d) => DEFS[d].b === b.id);
+  if (!defs.length) html += `<p class="sub">Aucune défense ne se construit ici. L'atelier est protégé par les Remparts réseau (niveau 3 : réseau séparé) et la Forge des mises à jour (niveau 3 : systèmes obsolètes isolés).</p>`;
+  defs.forEach((d) => {
+    const l = t.levels[d] || 0, def = DEFS[d], next = def.lv[l];
+    const c = cap(d, t.levels), bud = budget(myTable), min = minLevel(myTable, d);
+    let why = "";
+    if (state.phase === "reco") why = "Construction après l'inspection.";
+    else if (state.phase !== "build") why = "";
+    else if (!next) why = "Niveau maximum !";
+    else if (l >= c) why = `Montez le QG cyber au niveau ${l} pour débloquer.`;
+    else if (next[0] > bud) why = `Il manque ${next[0] - bud} €.`;
+    html += `<div class="def">${towerIcon(d, l)}
+      <div class="def-head"><h3>${esc(def.name)}</h3><span class="lvstars" aria-label="Niveau ${l} sur 3">${[1, 2, 3].map((i) => STAR(i <= l)).join("")}</span></div>
+      <ul class="lv-list">${def.lv.map(([cost, txt], i) => `<li class="${i < l ? "done" : ""}"><b>${cost} €</b><span>Niv. ${i + 1} · ${esc(txt)}</span></li>`).join("")}</ul>
+      <div class="actions">
+        ${next ? `<button class="btn green" data-up="${d}" ${canUpgrade(myTable, d) ? "" : "disabled"}>${l ? "Améliorer" : "Construire"} · ${next[0]} €</button>` : ""}
+        ${state.phase === "build" && l > min ? `<button class="btn plain" data-down="${d}">Annuler</button>` : ""}
+        ${why ? `<span class="why">${why}</span>` : ""}
+      </div></div>`;
+  });
+  p.innerHTML = html;
+
+  p.querySelectorAll("[data-obs]").forEach((btn) => btn.onclick = () => {
+    if (state.phase !== "reco") return;
+    const m = mine(), id = btn.dataset.obs;
+    if (m.flags[id]) delete m.flags[id]; else m.flags[id] = true;
+    SFX.flag(); flyOk = Date.now(); renderVillage(); renderPanel(); saveTable(myTable);
+  });
+  p.querySelectorAll("[data-up]").forEach((btn) => btn.onclick = () => {
+    const d = btn.dataset.up;
+    if (!canUpgrade(myTable, d)) return;
+    const m = mine(); m.levels[d] = (m.levels[d] || 0) + 1;
+    justBuilt = { d, at: Date.now() }; flyOk = Date.now(); SFX.build();
+    renderBase(false); saveTable(myTable);
+    const [tx, ty] = towerTop(d, m.levels[d]), fx = $("layer-fx");
+    burst(fx, tx, ty + 10, ["#f0b429", "#ffffff", "#ffe14d"], 16, 50, 900);
+    floatText(fx, tx, ty - 10, m.levels[d] === 3 ? "Niveau max !" : "Niveau " + m.levels[d] + " !", "#b7830e");
+  });
+  p.querySelectorAll("[data-down]").forEach((btn) => btn.onclick = () => {
+    const d = btn.dataset.down, m = mine(), l = m.levels[d] || 0;
+    if (state.phase !== "build" || l <= minLevel(myTable, d)) return;
+    if (d === "gouv" && DEF_IDS.some((x) => x !== "gouv" && (m.levels[x] || 0) > l)) { setStatus("Baissez d'abord les défenses qui dépassent le niveau autorisé par le QG."); return; }
+    m.levels[d] = l - 1; flyOk = Date.now(); SFX.coin();
+    renderBase(false); saveTable(myTable);
+  });
+}
+
+function raidHTML(raid, levels, step) {
+  const r = resolve(raid, levels, state.power, tbl(myTable).answers);
+  let html = `<div class="raid"><h2>${esc(raid.name)}</h2><p class="intro">${esc(raid.intro)}</p>${state.power ? `<p class="why power">Attaquants aguerris : +${state.power} niveau${state.power > 1 ? "x" : ""} de défense exigé${state.power > 1 ? "s" : ""}.</p>` : ""}`;
+  raid.steps.forEach(([txt, blockers], i) => {
+    const shown = i < step && !pendingFire.has(i);
+    let cls = "step", line = "";
+    const alt = blockers.length ? "Parade : " + blockers.map((b) => reqLabel(b, state.power)).join(" ou ") : "Aucune parade possible à cette étape.";
+    if (!shown) { cls += " off"; line = `<span class="hint">${i < step ? "L'attaque avance…" : "En attente du maître du jeu…"}</span>`; }
+    else if (r.blockedAt >= 0 && i > r.blockedAt) { cls += " off"; line = `<span class="res-line">L'attaque s'est arrêtée avant.</span>`; }
+    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">${r.by[0][0] === "reflex" ? "Contré par le réflexe de l'équipe !" : "Bloqué par " + esc(r.by.map((b) => reqLabel(b, state.power)).join(" et ")) + " !"}</span>`; }
+    else { cls += " win"; line = `<span class="res-line">L'attaquant passe.</span><span class="hint">${esc(alt)}</span>`; }
+    html += `<div class="${cls}"><span class="k">Étape ${i + 1}</span><span>${esc(txt)}</span>${line}</div>`;
+  });
+  return html + `</div>`;
+}
+
+// ---------- situations à contrer ----------
+function portrait(pid) {
+  const p = PERSONAS[pid] || PERSONAS.phil, c = p.color, dark = shade(c, -0.35);
+  let acc = "", head = "";
+  const face = `<circle cx="60" cy="54" r="22" fill="${p.skin}" stroke="#2a2118" stroke-width="2"/>
+    <path d="M47 47 L55 50 M73 47 L65 50" stroke="#2a2118" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="52" cy="55" r="2.6" fill="#2a2118"/><circle cx="68" cy="55" r="2.6" fill="#2a2118"/>
+    <path d="M50 64 Q60 72 71 63" fill="none" stroke="#2a2118" stroke-width="2.5" stroke-linecap="round"/>`;
+  const hood = `<path d="M33 66 Q28 24 60 22 Q92 24 87 66 Q84 40 60 36 Q36 40 33 66 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`;
+  if (p.acc === "rod") { head = hood; acc = `<line x1="96" y1="116" x2="112" y2="18" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/><path d="M112 18 L106 70" stroke="#555" stroke-width="1.2"/><path d="M106 70 q-5 6 0 10 q5 -2 3 -6" fill="none" stroke="#999" stroke-width="2"/>`; }
+  if (p.acc === "tie") { head = `<path d="M36 58 Q34 26 60 26 Q86 26 84 58 Q80 40 60 38 Q40 40 36 58 Z" fill="#3b2a1a"/>`; acc = `<polygon points="60,82 54,90 60,112 66,90" fill="#f0b429" stroke="#2a2118"/><rect x="45" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/><rect x="63" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "mask") { head = hood; acc = `<path d="M38 58 Q60 54 82 58 L80 72 Q60 80 40 72 Z" fill="#1a130c"/><text x="60" y="71" text-anchor="middle" font-size="10" fill="${c}" font-family="Nunito, sans-serif" font-weight="800">$$$</text>`; }
+  if (p.acc === "cap") { head = `<path d="M37 48 Q38 28 60 28 Q82 28 83 48 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/><path d="M80 46 L100 50 L82 52 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`; acc = `<rect x="78" y="88" width="26" height="22" rx="4" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><path d="M84 88 Q91 76 98 88" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "laptop") { head = `<path d="M38 50 Q38 28 60 28 Q82 28 82 50 Q76 36 60 36 Q44 36 38 50 Z" fill="#2a2118"/>`; acc = `<polygon points="30,96 76,96 84,116 22,116" fill="#aab4bf" stroke="#2a2118" stroke-width="2"/><circle cx="53" cy="106" r="3" fill="#fff"/><rect x="45" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/><rect x="63" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/>`; }
+  if (p.acc === "usb") { head = `<path d="M34 46 L86 46 L78 38 Q60 20 42 38 Z" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><rect x="30" y="44" width="60" height="5" rx="2" fill="#5e3b17"/>`; acc = `<rect x="84" y="84" width="14" height="26" rx="3" fill="#2c3e50" stroke="#2a2118" stroke-width="2"/><rect x="87" y="76" width="8" height="9" fill="#c9ced4" stroke="#2a2118" stroke-width="1.5"/>`; }
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="58" fill="${shade(c, 0.78)}" stroke="${c}" stroke-width="4"/>
+    <path d="M18 120 Q18 82 60 80 Q102 82 102 120 Z" fill="${c}" stroke="#2a2118" stroke-width="2"/>${face}${head}${acc}</svg>`;
+}
+function sceneHTML(sc) {
+  if (sc.type === "mail") return `<div class="mock mail"><div class="mh"><span>De : <b>${esc(sc.from)}</b></span><span>Objet : <b>${esc(sc.subject)}</b></span></div><p>${esc(sc.body)}</p>${sc.link ? `<span class="flink">${esc(sc.link)}</span>` : ""}</div>`;
+  if (sc.type === "alert") return `<div class="mock alert"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p></div>`;
+  if (sc.type === "call") return `<div class="mock call"><span class="who">Appel entrant · ${esc(sc.caller)}</span>${sc.lines.map((l) => `<p class="bubble">${esc(l)}</p>`).join("")}</div>`;
+  if (sc.type === "ransom") return `<div class="mock ransom"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p></div>`;
+  return `<div class="mock talk"><p class="bubble">${esc(sc.text)}</p></div>`;
+}
+function choiceOrder(key, n) {
+  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const idx = Array.from({ length: n }, (_, k) => k);
+  for (let k = n - 1; k > 0; k--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (k + 1); [idx[k], idx[j]] = [idx[j], idx[k]]; }
+  return idx;
+}
+let currentView = "base";
+// Répond aux situations : toute tablette de table, et l'appareil du maître du jeu quand il est sur « Ma base ».
+const devicePlays = () => !IS_MJ || currentView === "base" || store.get("clash-mj-plays") === "1";
+let modalQ = Promise.resolve(), modalClose = null;
+function openModal(build) {
+  const p = modalQ.then(() => new Promise((res) => {
+    const el = $("result");
+    let closed = false;
+    const close = (v) => { if (closed) return; closed = true; if (modalClose === close) modalClose = null; el.hidden = true; el.innerHTML = ""; res(v); };
+    modalClose = close;
+    build(el, close);
+    el.hidden = false;
+  }));
+  modalQ = p.catch(() => {});
+  return p;
+}
+function closeModal() { if (modalClose) modalClose(undefined); }
+function saveAnswer(key, c) { const m = mine(); m.answers = Object.assign({}, m.answers, { [key]: { c, at: Date.now() } }); saveTable(myTable); renderGiant(); if (!$("view-mj").hidden) renderMJ(); }
+// Attend la réponse de la table : soit elle arrive d'une autre tablette, soit cet appareil pose la question.
+function askSituation(raid, i) {
+  const key = raid.id + ":" + i;
+  return new Promise((res) => {
+    const t0 = Date.now(), iv = setInterval(() => {
+      const a = tbl(myTable).answers[key];
+      if (a) { clearInterval(iv); res(a.c); return; }
+      if (state.current !== raid.id || myTable !== seen.table) { clearInterval(iv); res(-2); return; }
+      if (devicePlays()) { clearInterval(iv); situationModal(raid, i).then(res); return; }
+      if (Date.now() - t0 > (state.cfg.react + 30) * 1000) { clearInterval(iv); res(-1); }
+    }, 300);
+  });
+}
+function situationModal(raid, i) {
+  const key = raid.id + ":" + i, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
+  return openModal((el, closeM) => {
+    const res = (c) => closeM(c);
+    const secs = Math.max(10, state.cfg.react || 40);
+    const order = choiceOrder(key, sit.c.length);
+    el.innerHTML = `<div class="card sit"><div class="sit-head">${portrait(raid.persona)}<div><span class="why">${esc(raid.name)} · étape ${i + 1}</span><b class="name">${esc(p.name)}</b><span class="sub">passe à l'attaque. Contrez-le !</span></div></div>
+      ${sceneHTML(sit.scene)}<p class="q">${esc(sit.q)}</p>
+      <div class="countdown" aria-hidden="true"><i style="animation-duration:${secs}s"></i></div><span class="why" id="sit-time">${secs} s</span>
+      <div class="choices">${order.map((k) => `<button data-c="${k}">${esc(sit.c[k])}</button>`).join("")}</div><div id="sit-fb"></div></div>`;
+    SFX.alarm();
+    let done = false;
+    const t0 = Date.now();
+    const tick = setInterval(() => {
+      if (el.hidden && done) { clearInterval(tick); return; }
+      const other = tbl(myTable).answers[key];
+      if (!done && other) { done = true; clearInterval(tick); res(other.c); return; } // une autre tablette a déjà répondu
+      if (!done && (state.current !== raid.id || myTable !== seen.table)) { done = true; clearInterval(tick); res(-2); return; }
+      const left = Math.max(0, secs - Math.floor((Date.now() - t0) / 1000));
+      if ($("sit-time")) $("sit-time").textContent = left + " s";
+      if (left === 0) finish(-1);
+    }, 250);
+    function finish(c) {
+      if (done) return; done = true; clearInterval(tick);
+      saveAnswer(key, c);
+      const ok = c === sit.ok;
+      el.querySelectorAll("[data-c]").forEach((b) => { b.disabled = true; const k = Number(b.dataset.c); if (k === sit.ok) b.classList.add("ok"); else if (k === c) b.classList.add("ko"); });
+      const cd = el.querySelector(".countdown"); if (cd) cd.remove(); if ($("sit-time")) $("sit-time").remove();
+      $("sit-fb").innerHTML = `<h2 class="${ok ? "win" : "lose"}">${ok ? "Contré !" : c === -1 ? "Trop tard…" : "Raté…"}</h2><p class="why">${esc(sit.why)}</p><button class="btn gold" id="btn-result">Continuer</button>`;
+      (ok ? SFX.win : SFX.lose)();
+      const close = () => { clearTimeout(auto); res(c); };
+      const auto = setTimeout(close, 12000);
+      $("btn-result").onclick = close;
+    }
+    el.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => finish(Number(b.dataset.c)));
+  });
+}
+// état de chaque table pour l'étape en cours (écran géant et maître du jeu)
+function stepStatus(raid, i, id) {
+  const t = tbl(id), r = resolve(raid, t.levels, state.power, t.answers);
+  if (r.blockedAt >= 0 && r.blockedAt < i) return ["", "Déjà stoppé"];
+  if (stepDefense(raid, i, t.levels, state.power).length) return ["def", "Défense"];
+  const sit = sitFor(raid, i);
+  if (!sit) return ["ko", "Passe"];
+  const a = t.answers[raid.id + ":" + i];
+  if (!a) return ["wait", "Réfléchit…"];
+  return a.c === sit.ok ? ["ref", "Contré"] : ["ko", a.c === -1 ? "Trop tard" : "Raté"];
+}
+function statusChips(raid, i) {
+  return `<div class="status-grid">${tableIds().map((id) => { const [cls, txt] = stepStatus(raid, i, id); return `<span class="st ${cls}">T${id.slice(1)} · ${txt}</span>`; }).join("")}</div>`;
+}
+
+let seenEvent = null;
+function checkEvent(initial) {
+  const le = state.lastEvent;
+  if (!le || seenEvent === le.at) return;
+  seenEvent = le.at;
+  if (initial || Date.now() - le.at > 120000) return;
+  const e = EVENT_BY_ID[le.id], ev = state.events.find((x) => x.id === le.id);
+  if (!e || !ev) return;
+  const d = ev.deltas[myTable] || 0;
+  if (!devicePlays()) return;
+  openModal((el, close) => {
+  el.innerHTML = `<div class="card event"><span class="why">Carte événement</span><h2>${esc(e.name)}</h2><p>${esc(e.text)}</p><p class="why">${esc(e.rule)}</p>
+    <p class="delta ${d > 0 ? "plus" : d < 0 ? "minus" : ""}">${d > 0 ? "+" + d + " €" : d < 0 ? "−" + (-d) + " €" : "Aucun effet"}</p><button class="btn gold" id="btn-result">Continuer</button></div>`;
+  $("btn-result").onclick = () => close();
+  (d >= 0 ? SFX.coin : SFX.lose)();
+  });
+}
+let deferredResult = null;
+function showResult(raid, levels, frozenStars) {
+  // l'écran du maître du jeu n'est pas interrompu : le bilan attendra son retour sur « Ma base »
+  if (!devicePlays()) { deferredResult = [raid, levels, frozenStars]; return; }
+  deferredResult = null;
+  const r = resolve(raid, levels, state.power, tbl(myTable).answers);
+  if (frozenStars !== undefined) r.stars = frozenStars;
+  const loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
+  const titles = ["Défense réussie !", "Base touchée", "Base très endommagée", "Base détruite"];
+  openModal((el, close) => {
+  el.innerHTML = `<div class="card"><span class="why">${esc(raid.name)} · étoiles gagnées par l'attaquant</span>
+    <h2 class="${r.stars === 0 ? "win" : "lose"}">${titles[r.stars]}</h2>
+    <div class="big-stars">${[0, 1, 2].map((i) => i < r.stars ? STAR(true, "on").replace("<svg", `<svg style="animation-delay:${0.25 + i * 0.3}s"`) : STAR(false)).join("")}</div>
+    <p>Dégâts : ${Math.round(r.stars / 3 * 100)} % · +${(3 - r.stars) * 10} trophées · ${loss ? "−" + loss + " € de pertes" : "aucune perte"}</p>
+    ${halved ? `<p class="why" style="color:var(--green)">Résilience : sauvegardes et plan de crise divisent les pertes par deux.</p>` : ""}
+    ${r.stars ? `<p class="why">Il fallait : ${esc(raid.steps.slice(0, r.stars).map((s) => s[1].length ? s[1].map((b) => reqLabel(b, state.power)).join(" ou ") : "").filter(Boolean).join(" ; ") || "limiter les étapes suivantes")}</p>` : ""}
+    <button class="btn gold" id="btn-result">Continuer</button></div>`;
+  $("btn-result").onclick = () => close();
+  (r.stars === 0 ? SFX.win : SFX.lose)();
+  });
+}
+
+// ---------- animation des raids ----------
+let animChain = Promise.resolve();
+function unitsSVG(raid, n) {
+  const [col, glyph] = raid.unit || ["#2a2118", "?"];
+  const u = (dx, dy, k) => `<g transform="translate(${dx} ${dy})"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob" style="animation-delay:${k * 0.07}s"><rect x="-5" y="-11" width="10" height="13" rx="4" fill="${col}" stroke="#1a130c" stroke-width="1"/><circle cx="0" cy="-14" r="5.5" fill="#1a130c"/><circle cx="-1.8" cy="-14" r="1.3" fill="#ff4d4d"/><circle cx="1.8" cy="-14" r="1.3" fill="#ff4d4d"/></g></g>`;
+  const pos = [[0, 0], [-14, 6], [12, 7], [-2, 14], [-18, 18], [14, 20], [2, 26]];
+  let out = "";
+  for (let k = 0; k < n; k++) out += u(pos[k][0], pos[k][1], k);
+  const p = PERSONAS[raid.persona];
+  if (p) {
+    // le chef de la troupe, plus grand, avec son nom
+    out += `<g transform="translate(24 -2) scale(1.45)"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-5.5" y="-12" width="11" height="14" rx="4" fill="${p.color}" stroke="#1a130c"/><circle cx="0" cy="-15.5" r="5.5" fill="${p.skin}" stroke="#1a130c"/><path d="M-6 -15 Q-6 -23 0 -23 Q6 -23 6 -15 Q3 -19 0 -19 Q-3 -19 -6 -15 Z" fill="${shade(p.color, -0.35)}"/><circle cx="-2" cy="-15" r="1" fill="#1a130c"/><circle cx="2" cy="-15" r="1" fill="#1a130c"/></g></g>`;
+    const nw = 10 + p.short.length * 7.2;
+    out += `<g transform="translate(24 -52)"><rect x="${-nw / 2}" y="-12" width="${nw}" height="16" rx="8" fill="#1a130c" stroke="${p.color}" stroke-width="2"/><text x="0" y="0" text-anchor="middle" font-size="11" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${esc(p.short)}</text></g>`;
+  }
+  const w = 12 + glyph.length * 8;
+  out += `<line x1="6" y1="-4" x2="6" y2="-44" stroke="#4a3520" stroke-width="2"/><rect x="6" y="-44" width="${w}" height="16" rx="2" fill="${col}" stroke="#1a130c"/><text x="${6 + w / 2}" y="-32" text-anchor="middle" font-size="12" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${glyph}</text>`;
+  return out;
+}
+const SVGNS = "http://www.w3.org/2000/svg";
+function burst(fx, x, y, cols, n, spread, ms) {
+  if (REDUCED) return;
+  for (let k = 0; k < n; k++) {
+    const c = document.createElementNS(SVGNS, "circle"), a = (Math.PI * 2 * k) / n + Math.random() * 0.5, d = spread * (0.5 + Math.random() * 0.6);
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 3 + Math.random() * 4); c.setAttribute("fill", cols[k % cols.length]); c.style.transformBox = "fill-box"; c.style.transformOrigin = "center";
+    fx.appendChild(c);
+    c.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d * 0.7 - 10}px) scale(0.2)`, opacity: 0 }], { duration: ms, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" });
+    setTimeout(() => c.remove(), ms + 50);
+  }
+}
+function shoot(fx, from, to, col, ms) {
+  const b = document.createElementNS(SVGNS, "circle");
+  b.setAttribute("r", 5); b.setAttribute("fill", col); b.setAttribute("stroke", "#fff"); b.setAttribute("stroke-width", "2");
+  fx.appendChild(b);
+  if (REDUCED) { b.remove(); return Promise.resolve(); }
+  const mid = [(from[0] + to[0]) / 2, Math.min(from[1], to[1]) - 50];
+  const a = b.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${mid[0]}px, ${mid[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, easing: "linear", fill: "forwards" });
+  return a.finished.catch(() => {}).then(() => b.remove());
+}
+function shakeStage() { const st = $("stage"); if (!st || REDUCED) return; st.classList.remove("shake"); void st.offsetWidth; st.classList.add("shake"); }
+function moveEl(el, from, to, ms) {
+  if (REDUCED) { el.setAttribute("transform", `translate(${to[0]} ${to[1]})`); return Promise.resolve(); }
+  const a = el.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, fill: "forwards", easing: "linear" });
+  return a.finished.catch(() => {});
+}
+function floatText(fx, x, y, txt, col) {
+  const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle");
+  t.setAttribute("font-size", "22"); t.setAttribute("fill", col); t.setAttribute("stroke", "#fff"); t.setAttribute("stroke-width", "4"); t.setAttribute("paint-order", "stroke");
+  t.textContent = txt; fx.appendChild(t);
+  if (!REDUCED) t.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-40px)", opacity: 0 }], { duration: 1600, fill: "forwards" });
+  setTimeout(() => t.remove(), 1700);
+}
+async function playStep(raid, i, levels) {
+  const fx = $("layer-fx"), def = stepDefense(raid, i, levels, state.power), sit = sitFor(raid, i);
+  const r = { by: def };
+  const [tgx, tgy] = PLOT[raid.steps[i][2]];
+  const from = i % 2 ? iso(tgx, 10.4) : iso(10.4, tgy);
+  const to = i % 2 ? iso(tgx - 0.2, tgy + 1.05) : iso(tgx + 1.05, tgy - 0.2);
+  const blocked = def.length > 0;
+  const g = document.createElementNS(SVGNS, "g");
+  g.innerHTML = unitsSVG(raid, 4 + i + state.power); fx.appendChild(g);
+  SFX.march();
+  const mid = [from[0] + (to[0] - from[0]) * 0.6, from[1] + (to[1] - from[1]) * 0.6];
+  const end = blocked || sit ? mid : to;
+  await moveEl(g, from, end, 1500);
+  if (!blocked && sit) {
+    const a = tbl(myTable).answers[raid.id + ":" + i];
+    const c = a ? a.c : await askSituation(raid, i);
+    if (c === -2) { g.remove(); return; }
+    if (c === sit.ok) {
+      SFX.block();
+      const hitPt = [mid[0], mid[1] - 8];
+      const shield = document.createElementNS(SVGNS, "circle");
+      shield.setAttribute("cx", hitPt[0]); shield.setAttribute("cy", hitPt[1]); shield.setAttribute("r", 34);
+      shield.setAttribute("fill", "rgba(44,110,168,0.25)"); shield.setAttribute("stroke", "#5fb0ff"); shield.setAttribute("stroke-width", "5");
+      shield.style.transformBox = "fill-box"; shield.style.transformOrigin = "center";
+      fx.appendChild(shield);
+      burst(fx, hitPt[0], hitPt[1], ["#5fb0ff", "#ffffff", "#f0b429"], 16, 50, 700);
+      floatText(fx, mid[0], mid[1] - 44, "Contré !", "#2c6ea8");
+      await moveEl(g, mid, from, 1100);
+      shield.remove(); g.remove();
+      return;
+    }
+    await moveEl(g, mid, to, 700);
+  }
+  if (blocked) {
+    // chaque défense qui bloque tire une salve
+    const hitPt = [end[0], end[1] - 8];
+    const volleys = r.by.flatMap(([d, lv]) => { const top = towerTop(d, levels[d] || lv); return [0, 1, 2].map((k) => ({ top, col: DEFS[d].color, k })); });
+    SFX.block();
+    await Promise.all(volleys.map((v) => sleep(v.k * 160).then(() => shoot(fx, v.top, hitPt, v.col, 520))));
+    const shield = document.createElementNS(SVGNS, "circle");
+    shield.setAttribute("cx", hitPt[0]); shield.setAttribute("cy", hitPt[1]); shield.setAttribute("r", 30);
+    shield.setAttribute("fill", "rgba(125,249,255,0.25)"); shield.style.transformBox = "fill-box"; shield.style.transformOrigin = "center"; shield.setAttribute("stroke", "#7df9ff"); shield.setAttribute("stroke-width", "4");
+    fx.appendChild(shield);
+    burst(fx, hitPt[0], hitPt[1], ["#7df9ff", "#ffffff", DEFS[r.by[0][0]].color], 14, 46, 700);
+    floatText(fx, end[0], end[1] - 40, "Bloqué !", "#2f8f46");
+    if (!REDUCED) { g.animate([{ opacity: 1, filter: "brightness(3)" }, { opacity: 0 }], { duration: 500, fill: "forwards" }); shield.animate([{ transform: "scale(0.6)", opacity: 1 }, { transform: "scale(1.4)", opacity: 0 }], { duration: 700, fill: "forwards" }); }
+    await sleep(800); shield.remove();
+  } else {
+    SFX.hit();
+    const bl = $("bld-" + raid.steps[i][2]);
+    if (bl) bl.classList.add("hitflash");
+    const [bx, by] = iso(tgx, tgy);
+    burst(fx, bx, by - 30, ["#ff8c1a", "#ffe14d", "#5a5a5a", "#d2452f"], 22, 80, 900);
+    shakeStage();
+    floatText(fx, to[0], to[1] - 60, "Touché !", "#d2452f");
+    await sleep(900);
+    if (!REDUCED) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+    await sleep(400);
+  }
+  g.remove();
+}
+function queueRaidAnim(raid, fromStep, toStep, levels) {
+  const r = resolve(raid, levels, state.power);
+  for (let i = fromStep; i < toStep; i++) pendingFire.add(i);
+  renderVillage(); renderPanel();
+  animChain = animChain.then(async () => {
+    for (let i = fromStep; i < toStep; i++) {
+      if (state.current !== raid.id || myTable !== seen.table) break;
+      const rNow = resolve(raid, levels, state.power, tbl(myTable).answers);
+      const skip = rNow.blockedAt >= 0 && i > rNow.blockedAt;
+      if (!skip) await playStep(raid, i, levels);
+      pendingFire.delete(i);
+      renderVillage(); renderPanel(); renderGiant();
+    }
+    pendingFire.clear();
+    if (toStep >= 3 && state.current === raid.id && resultShownFor !== raid.id + myTable) {
+      resultShownFor = raid.id + myTable; showResult(raid, levels);
+    }
+  });
+}
+function showIntro(raid) {
+  const el = $("raid-intro");
+  el.innerHTML = `<b>Alerte raid !</b><span>${esc(raid.name)}${state.power ? ` · attaquants aguerris +${state.power}` : ""}</span>`;
+  el.hidden = true; void el.offsetWidth; el.hidden = false;
+  SFX.alarm();
+  clearTimeout(showIntro.t); showIntro.t = setTimeout(() => { el.hidden = true; }, REDUCED ? 2500 : 3000);
+}
+function firstPending(raid) {
+  for (let i = 0; i < state.step; i++) {
+    const st = stepStatus(raid, i, myTable)[0];
+    if (st === "") return -1;
+    if (st === "wait") return i;
+  }
+  return -1;
+}
+function checkRaidProgress() {
+  const cur = state.phase === "raid" ? state.current : null;
+  if (!cur) {
+    // raid terminé par le maître du jeu : chaque table voit son bilan, même si les animations n'étaient pas finies
+    const last = state.played[state.played.length - 1], res = last && state.results[last] && state.results[last][myTable];
+    if (seen.raid && seen.raid === last && res && resultShownFor !== last + myTable) {
+      resultShownFor = last + myTable; showResult(RAID_BY_ID[last], res.lv || {}, res.s);
+    }
+    seen = { raid: null, step: 0, table: myTable }; pendingFire.clear(); return;
+  }
+  const raid = RAID_BY_ID[cur];
+  if (seen.raid === cur && seen.table === myTable && state.step > seen.step) {
+    queueRaidAnim(raid, seen.step, state.step, clone(tbl(myTable).levels));
+  } else if (seen.raid !== cur || seen.table !== myTable) {
+    resultShownFor = null; closeModal();
+    if (seen.raid !== cur && state.step === 0) showIntro(raid);
+    else {
+      const fp = firstPending(raid);
+      if (fp >= 0) { seen = { raid: cur, step: fp, table: myTable }; queueRaidAnim(raid, fp, state.step, clone(tbl(myTable).levels)); }
+    }
+  }
+  seen = { raid: cur, step: state.step, table: myTable };
+}
+
+function renderBase(sync) {
+  renderTableSelect();
+  const n = $("in-name");
+  if (sync || document.activeElement !== n) n.value = tbl(myTable).name;
+  renderHUD(); renderVillage(); renderPanel();
+}
+
+// ================= écran géant =================
+function renderGiant() {
+  const ids = tableIds(), raid = state.phase === "raid" ? RAID_BY_ID[state.current] : null;
+  let html = `<div class="giant-head"><h2>${raid ? esc(raid.name) + " · étape " + Math.min(state.step, 3) + "/3" : state.phase === "reco" ? "Inspection en cours" : state.phase === "build" ? "Construction en cours" : "Partie terminée"}</h2><span class="pill" id="giant-timer" hidden></span></div>`;
+  if (raid && state.step > 0) {
+    const i = state.step - 1, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
+    const pending = ids.some((id) => stepStatus(raid, i, id)[0] === "wait");
+    html += `<div class="panel giant-sit"><div class="gs-portrait">${portrait(raid.persona)}<b class="name">${esc(p.name)}</b></div><div class="gs-body">
+      <span class="why">Étape ${i + 1} · ${esc(raid.steps[i][0])}</span>
+      ${sit ? sceneHTML(sit.scene) + `<p class="q">${esc(sit.q)}</p>` : `<p class="q">Aucune réaction possible à cette étape : seules les défenses comptent.</p>`}
+      ${statusChips(raid, i)}
+      ${sit && !pending ? `<p class="why" style="color:var(--green)">Bonne réaction : ${esc(sit.c[sit.ok])}. ${esc(sit.why)}</p>` : ""}</div></div>`;
+  }
+  html += `<div class="minis">`;
+  ids.forEach((id) => {
+    const t = tbl(id), lv = t.levels;
+    let steps = "";
+    if (raid) {
+      const r = resolve(raid, lv, state.power, t.answers);
+      const CL = { def: "block", ref: "reflex", ko: "win", wait: "wait", "": "" };
+      steps = `<div class="steps">${[0, 1, 2].map((i) => i >= state.step ? "<i></i>" : `<i class="${CL[stepStatus(raid, i, id)[0]]}"></i>`).join("")}</div>`;
+    }
+    const fires = new Set();
+    if (raid) { for (let i = 0; i < state.step; i++) { const st = stepStatus(raid, i, id)[0]; if (st === "ko") fires.add(raid.steps[i][2]); else if (st !== "wait") break; } }
+    html += `<div class="mini"><div class="top"><b>Table ${id.slice(1)}${t.name ? " · " + esc(t.name) : ""}</b><span>${trophies(id)} trophées</span></div>
+      <svg class="world" viewBox="-395 -95 790 510" aria-hidden="true">${drawWorld(lv, { mini: true, fires })}</svg>${steps}</div>`;
+  });
+  html += `</div>`;
+
+  const rows = ids.map((id) => ({ id, t: tbl(id), tr: trophies(id), b: budget(id), r: reco(tbl(id).flags) })).sort((a, b) => b.tr - a.tr || b.b - a.b);
+  const showReco = state.phase !== "reco";
+  html += `<div class="board-box"><table class="rank"><thead><tr><th>#</th><th class="l">Table</th><th>Trophées</th>`;
+  state.played.forEach((rid) => { html += `<th>${esc(RAID_BY_ID[rid].name.replace("Raid ", ""))}</th>`; });
+  html += `<th>Budget</th><th>${showReco ? "Failles trouvées" : "Failles marquées"}</th></tr></thead><tbody>`;
+  rows.forEach((x, i) => {
+    html += `<tr><td class="pos">${i + 1}</td><td class="l">Table ${x.id.slice(1)}${x.t.name ? " · " + esc(x.t.name) : ""}</td><td>${x.tr}</td>`;
+    state.played.forEach((rid) => {
+      const res = state.results[rid]?.[x.id], s = res ? res.s : 3;
+      html += `<td class="mini-stars" title="${s} étoile(s) pour l'attaquant">${s === 0 ? '<span class="z">repoussé</span>' : "★".repeat(s)}</td>`;
+    });
+    html += `<td>${x.b} €</td><td>${showReco ? `${x.r.good} / ${x.r.total}${x.r.bad ? ` · ${x.r.bad} fausse${x.r.bad > 1 ? "s" : ""} alerte${x.r.bad > 1 ? "s" : ""}` : ""}` : Object.keys(x.t.flags).length}</td></tr>`;
+  });
+  html += `</tbody></table></div><p class="status">Étoiles gagnées par l'attaquant : 0 = attaque repoussée, 3 = base détruite. Chaque étoile évitée rapporte 10 trophées.</p>`;
+
+  if (state.events.length) {
+    html += `<h2 style="margin-top:18px">Événements</h2><div class="debrief">`;
+    state.events.forEach((ev) => {
+      const e = EVENT_BY_ID[ev.id]; if (!e) return;
+      const gain = ids.filter((id) => (ev.deltas[id] || 0) > 0).length, lossN = ids.filter((id) => (ev.deltas[id] || 0) < 0).length;
+      html += `<article class="panel"><h3>${esc(e.name)}</h3><p class="sub">${esc(e.rule)}</p><p class="why">${gain} table${gain > 1 ? "s" : ""} gagnante${gain > 1 ? "s" : ""} · ${lossN} table${lossN > 1 ? "s" : ""} perdante${lossN > 1 ? "s" : ""}</p></article>`;
+    });
+    html += `</div>`;
+  }
+  if (state.played.length) {
+    html += `<h2 style="margin-top:18px">Débrief des raids</h2><div class="debrief">`;
+    state.played.forEach((rid) => {
+      const raid2 = RAID_BY_ID[rid], res = state.results[rid] || {}, blockedAt = [0, 0, 0];
+      ids.forEach((id) => { const s = res[id] ? res[id].s : 3; if (s < 3) blockedAt[s]++; });
+      html += `<article class="panel"><h3>${esc(raid2.name)}</h3><p class="sub">${esc(raid2.intro)}</p><ol>`;
+      raid2.steps.forEach(([txt, bl], i) => {
+        html += `<li>${esc(txt)}<br><span class="why">${bl.length ? "Parade : " + esc(bl.map((b) => reqLabel(b, state.powers[rid] || 0)).join(" ou ")) : "Aucune parade : il faut limiter la suite."}</span>${blockedAt[i] ? ` <span class="cnt">· stoppé ici par ${blockedAt[i]} table${blockedAt[i] > 1 ? "s" : ""}</span>` : ""}</li>`;
+      });
+      html += `</ol></article>`;
+    });
+    html += `</div>`;
+  }
+  $("giant-body").innerHTML = html;
+  renderTimer();
+}
+
+// ================= maître du jeu =================
+function renderMJ() {
+  const s = state, box = $("mj-body");
+  let html = `<div class="panel"><h2>Déroulé de la partie</h2>`;
+  if (s.phase === "reco") {
+    const started = tableIds().filter((id) => Object.keys(tbl(id).flags).length).length;
+    html += `<p class="sub">Les tables inspectent la base. ${started} table${started > 1 ? "s ont" : " a"} commencé à marquer des failles.</p>
+      <div class="actions"><button class="btn gold" id="mj-reveal">Révéler les failles et ouvrir la construction</button></div>`;
+  } else if (s.phase === "raid") {
+    const raid = RAID_BY_ID[s.current];
+    html += `<p class="sub">${esc(raid.name)}${s.power ? ` · puissance +${s.power}` : ""} · étape ${Math.min(s.step, 3)} sur 3 révélée. Chaque clic fait avancer l'attaque sur toutes les bases.</p><div class="actions">
+      ${s.step < 3 ? `<button class="btn red" id="mj-step">Lancer l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>
+      ${s.step > 0 ? `<p class="sub">Réactions des tables à l'étape ${s.step} :</p>${statusChips(raid, s.step - 1)}` : ""}`;
+  } else if (s.phase === "build") {
+    const nextPower = s.cfg.escalate ? Math.floor(s.played.length / 2) : 0;
+    html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il frappe toutes les bases en même temps.${nextPower ? ` Puissance du prochain raid : +${nextPower} niveau${nextPower > 1 ? "x" : ""} exigé${nextPower > 1 ? "s" : ""}.` : ""}</p>
+      <div class="actions"><button class="btn red" id="mj-random" ${s.played.length >= RAIDS.length ? "disabled" : ""}>Raid surprise</button></div><div class="raid-pick">`;
+    RAIDS.forEach((r) => {
+      const done = s.played.includes(r.id);
+      html += `<div class="it ${done ? "done" : ""}"><div class="txt"><b>${esc(r.name)}</b><div>${esc(r.intro)}</div></div>
+        ${done ? `<span class="why">Déjà joué</span>` : `<button class="btn red" data-launch="${r.id}">Lancer le raid</button>`}</div>`;
+    });
+    html += `</div><div class="actions" style="margin-top:6px"><button class="btn plain" id="mj-end">Terminer la partie</button></div>`;
+    html += `</div><div class="panel"><h2>Cartes événement</h2><p class="sub">À tirer entre deux raids. L'effet dépend des défenses de chaque table au moment du tirage.</p>
+      <div class="actions"><button class="btn gold" id="mj-event-random" ${s.events.length >= EVENTS.length ? "disabled" : ""}>Tirer une carte au hasard</button></div><div class="raid-pick">`;
+    EVENTS.forEach((e) => {
+      const done = s.events.some((x) => x.id === e.id);
+      html += `<div class="it ${done ? "done" : ""}"><div class="txt"><b>${esc(e.name)}</b><div>${esc(e.rule)}</div></div>
+        ${done ? `<span class="why">Déjà tirée</span>` : `<button class="btn gold" data-event="${e.id}">Tirer</button>`}</div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<p class="sub">Partie terminée après ${s.played.length} raid${s.played.length > 1 ? "s" : ""}. Le classement et le débrief sont sur l'écran géant.</p>
+      <div class="actions"><button class="btn plain" id="mj-reopen">Rouvrir la construction</button></div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="panel"><h2>Chrono partagé</h2><p class="sub">S'affiche sur toutes les tablettes et sur l'écran géant.</p><div class="actions">
+    ${[2, 3, 5, 10].map((m) => `<button class="btn blue" data-timer="${m}">${m} min</button>`).join("")}
+    <button class="btn plain" id="mj-timer-stop" ${s.timer ? "" : "disabled"}>Arrêter</button></div></div>`;
+
+  html += `<div class="panel"><h2>Réglages</h2><p class="sub">Modifiables à tout moment. Les budgets se recalculent pour toutes les tables.</p><div class="row">
+    <label for="c-tables">Tables<input type="number" id="c-tables" min="1" max="12" value="${s.cfg.tables}"></label>
+    <label for="c-start">Budget de départ (€)<input type="number" id="c-start" min="0" max="500" value="${s.cfg.start}"></label>
+    <label for="c-bonus">Gain par faille (€)<input type="number" id="c-bonus" min="0" max="50" value="${s.cfg.bonus}"></label>
+    <label for="c-revenue">Revenu après chaque raid (€)<input type="number" id="c-revenue" min="0" max="200" value="${s.cfg.revenue}"></label>
+    ${[1, 2, 3].map((k) => `<label for="c-loss${k}">Perte à ${k} étoile${k > 1 ? "s" : ""} (€)<input type="number" id="c-loss${k}" min="0" max="200" value="${s.cfg.loss[k]}"></label>`).join("")}
+    <label for="c-upkeep">Entretien par niveau et par raid (€)<input type="number" id="c-upkeep" min="0" max="20" value="${s.cfg.upkeep}"></label>
+    <label for="c-escalate" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-escalate" ${s.cfg.escalate ? "checked" : ""}> Raids de plus en plus forts</label>
+    <label for="c-reflex" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-reflex" ${s.cfg.reflex !== false ? "checked" : ""}> Situations à contrer</label>
+    <label for="c-react">Temps de réaction (s)<input type="number" id="c-react" min="10" max="180" value="${s.cfg.react}"></label>
+    <label for="c-plays" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-plays" ${store.get("clash-mj-plays") === "1" ? "checked" : ""}> Cet appareil répond aussi pour une table</label>
+  </div></div>`;
+
+  html += `<div class="panel"><h2>Nouvelle partie</h2><p class="sub">Remet la partie au début et vide les bases de toutes les tables.</p><div class="actions">
+    ${confirmReset ? `<span class="confirm">Tout effacer ? <button class="btn red" id="mj-reset-yes">Effacer et recommencer</button><button class="btn plain" id="mj-reset-no">Annuler</button></span>` : `<button class="btn plain" id="mj-reset">Recommencer la partie</button>`}
+  </div></div>`;
+
+  const focused = document.activeElement && document.activeElement.id;
+  box.innerHTML = html;
+  if (focused && focused.startsWith("c-") && $(focused)) $(focused).focus();
+
+  const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
+  on("mj-reveal", () => { state.phase = "build"; state.timer = null; commit(); });
+  on("mj-step", () => { state.step = Math.min(3, state.step + 1); commit(); });
+  on("mj-close", () => {
+    const rid = state.current, res = {};
+    tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv, state.power, tbl(id).answers).stars, lv }; });
+    state.powers[rid] = state.power;
+    state.results[rid] = res; state.played = state.played.concat(rid);
+    state.phase = "build"; state.current = null; state.step = 0;
+    commit();
+  });
+  const launch = (rid) => { state.phase = "raid"; state.current = rid; state.step = 0; state.timer = null; state.power = state.cfg.escalate ? Math.floor(state.played.length / 2) : 0; commit(); };
+  box.querySelectorAll("[data-launch]").forEach((b) => b.onclick = () => launch(b.dataset.launch));
+  on("mj-random", () => { const left = RAIDS.filter((r) => !state.played.includes(r.id)); if (left.length) launch(left[Math.floor(Math.random() * left.length)].id); });
+  const draw = (eid) => {
+    const e = EVENT_BY_ID[eid], deltas = {};
+    tableIds().forEach((id) => { deltas[id] = e.f(tbl(id).levels); });
+    state.events = state.events.concat({ id: eid, deltas }); state.lastEvent = { id: eid, at: Date.now() }; commit();
+  };
+  box.querySelectorAll("[data-event]").forEach((b) => b.onclick = () => draw(b.dataset.event));
+  on("mj-event-random", () => { const left = EVENTS.filter((e) => !state.events.some((x) => x.id === e.id)); if (left.length) draw(left[Math.floor(Math.random() * left.length)].id); });
+  box.querySelectorAll("[data-timer]").forEach((b) => b.onclick = () => { state.timer = { end: Date.now() + Number(b.dataset.timer) * 60000 }; commit(); });
+  on("mj-timer-stop", () => { state.timer = null; commit(); });
+  on("mj-end", () => { state.phase = "end"; state.timer = null; commit(); });
+  on("mj-reopen", () => { state.phase = "build"; commit(); });
+  on("mj-reset", () => { confirmReset = true; renderMJ(); });
+  on("mj-reset-no", () => { confirmReset = false; renderMJ(); });
+  on("mj-reset-yes", () => {
+    confirmReset = false;
+    state = normState({ cfg: clone(state.cfg) });
+    tableIds().forEach((id) => { tables[id] = { name: tbl(id).name, flags: {}, levels: {} }; saveTable(id); });
+    commit();
+  });
+  const num = (id, fn) => $(id).addEventListener("input", (e) => {
+    if (e.target.value === "") return;
+    const v = Math.max(0, Math.round(Number(e.target.value)));
+    if (!Number.isFinite(v)) return;
+    fn(v); renderBanner(); renderBase(false); renderGiant(); later("cfg", saveState);
+  });
+  num("c-tables", (v) => { state.cfg.tables = Math.min(12, Math.max(1, v)); });
+  num("c-start", (v) => { state.cfg.start = v; });
+  num("c-bonus", (v) => { state.cfg.bonus = v; });
+  num("c-revenue", (v) => { state.cfg.revenue = v; });
+  [1, 2, 3].forEach((k) => num("c-loss" + k, (v) => { state.cfg.loss[k] = v; }));
+  num("c-upkeep", (v) => { state.cfg.upkeep = Math.min(20, v); });
+  $("c-escalate").onchange = (e) => { state.cfg.escalate = e.target.checked; commit(); };
+  $("c-reflex").onchange = (e) => { state.cfg.reflex = e.target.checked; commit(); };
+  num("c-react", (v) => { state.cfg.react = Math.min(180, Math.max(10, v)); });
+  $("c-plays").onchange = (e) => { store.set("clash-mj-plays", e.target.checked ? "1" : "0"); };
+}
+function commit() { flyOk = Date.now(); checkRaidProgress(); checkEvent(false); renderAll(false); saveState(); }
+
+// ================= navigation =================
+const VIEWS = ["base", "giant", "mj"];
+// Le rôle de maître du jeu ne vaut que pour l'onglet ouvert avec #mj (jamais pour les autres onglets).
+// Accès maître du jeu : lien terminé par #mj, ou code saisi en bas de page. Valable pour cet onglet seulement.
+const MJ_CODE = "cyfun";
+let IS_MJ = (() => {
+  try { localStorage.removeItem("clash-mj"); } catch {}
+  let mj = location.hash === "#mj";
+  try { if (mj) sessionStorage.setItem("clash-mj", "1"); mj = mj || sessionStorage.getItem("clash-mj") === "1"; } catch {}
+  return mj;
+})();
+function applyMJ() { $("tab-mj").hidden = !IS_MJ; $("mj-access").hidden = IS_MJ; }
+applyMJ();
+$("mj-open").onclick = () => { $("mj-open").hidden = true; $("mj-form").hidden = false; $("mj-code").focus(); };
+$("mj-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if ($("mj-code").value.trim().toLowerCase() !== MJ_CODE) { $("mj-err").textContent = "Code incorrect."; return; }
+  IS_MJ = true;
+  try { sessionStorage.setItem("clash-mj", "1"); } catch {}
+  applyMJ(); renderMJ(); show("mj");
+});
+function show(v) {
+  if (v === "mj" && !IS_MJ) v = "base";
+  VIEWS.forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
+  tabStore.set("clash-view", v); currentView = v;
+  if (v === "base" && deferredResult) showResult(...deferredResult);
+}
+VIEWS.forEach((v) => $("tab-" + v).onclick = () => show(v));
+function renderAll(sync) { renderBanner(); renderBase(sync); renderGiant(); renderMJ(); }
+
+// ================= décor animé =================
+function renderScenery() {
+  let bg = `<rect x="-395" y="-95" width="790" height="510" fill="url(#g-sea)"/>`;
+  let seed = 3; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (let k = 0; k < 34; k++) {
+    const x = -390 + rnd() * 780, y = -90 + rnd() * 500;
+    const [gx, gy] = [(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2];
+    if (gx > -1.2 && gx < 10.2 && gy > -1.2 && gy < 10.6) continue; // pas de vagues sur l'île
+    bg += `<path class="wave" style="animation-delay:${(rnd() * 3).toFixed(2)}s" d="M ${x} ${y} q 7 -5 14 0 q 7 5 14 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
+  }
+  const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
+  bg += `<polygon class="foam" points="${P([[c[0][0], c[0][1] - 10], [c[1][0] + 16, c[1][1]], [c[1][0] + 16, c[1][1] + 34], [c[2][0], c[2][1] + 44], [c[3][0] - 16, c[3][1] + 34], [c[3][0] - 16, c[3][1]]])}" fill="none" stroke="#e8f7ff" stroke-width="5" stroke-opacity="0.75" stroke-linejoin="round"/>`;
+  bg += `<g class="boat"><g transform="translate(-340 300)"><path d="M -22 0 L 22 0 L 14 10 L -14 10 Z" fill="#8a5a2b" stroke="#5e3b17"/><line x1="0" y1="0" x2="0" y2="-34" stroke="#5e3b17" stroke-width="2"/><path d="M 1 -32 L 20 -6 L 1 -6 Z" fill="#fffaf0" stroke="#b3a58c"/></g></g>`;
+  for (let k = 0; k < 14; k++) {
+    const x = -380 + rnd() * 760, y = -80 + rnd() * 480;
+    const [gx, gy] = [(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2];
+    if (gx > -1.2 && gx < 10.2 && gy > -1.2 && gy < 10.6) continue;
+    bg += `<path class="twinkle" style="animation-delay:${(rnd() * 4).toFixed(2)}s" d="M ${x} ${y - 4} L ${x + 1} ${y - 1} L ${x + 4} ${y} L ${x + 1} ${y + 1} L ${x} ${y + 4} L ${x - 1} ${y + 1} L ${x - 4} ${y} L ${x - 1} ${y - 1} Z" fill="#fff"/>`;
+  }
+  $("layer-bg").innerHTML = bg;
+  const [hx, hy] = iso(...PLOT.hq), [sx, sy] = iso(...PLOT.srv);
+  let top = `<g id="tint"><rect x="-395" y="-95" width="790" height="510" fill="rgba(190,30,20,0.18)"/>
+    <g class="beam" style="transform-origin:${hx}px ${hy - 80}px"><polygon points="${hx},${hy - 80} ${hx - 150},${hy + 260} ${hx - 40},${hy + 280}" fill="url(#g-beam)"/></g>
+    <g class="beam b2" style="transform-origin:${sx}px ${sy - 60}px"><polygon points="${sx},${sy - 60} ${sx + 60},${sy + 280} ${sx + 170},${sy + 250}" fill="url(#g-beam)"/></g></g>`;
+  top += `<g class="birds"><g transform="translate(-330 40)"><path class="flap" d="M -8 0 Q -4 -5 0 0 Q 4 -5 8 0" fill="none" stroke="#2a2118" stroke-width="1.6"/><path class="flap" style="animation-delay:.15s" d="M 10 8 Q 14 3 18 8 Q 22 3 26 8" fill="none" stroke="#2a2118" stroke-width="1.6"/></g></g>`;
+  [[-300, -60, 1, 0], [60, -40, 0.8, -30], [-120, 360, 1.1, -55]].forEach(([x, y, sc, delay]) => {
+    top += `<g class="cloud" style="animation-delay:${delay}s"><g transform="translate(${x} ${y}) scale(${sc})" opacity="0.9">
+      <ellipse cx="0" cy="0" rx="46" ry="18" fill="#fff"/><ellipse cx="-26" cy="4" rx="26" ry="13" fill="#fff"/><ellipse cx="28" cy="5" rx="30" ry="12" fill="#fff"/><ellipse cx="4" cy="-12" rx="26" ry="15" fill="#fff"/></g></g>`;
+  });
+  $("layer-top").innerHTML = top;
+
+  // employés qui se promènent sur l'allée de devant
+  const walkers = $("layer-walkers");
+  walkers.innerHTML = "";
+  const route = [iso(0.9, 8.3), iso(8.3, 8.3), iso(8.3, 0.9)];
+  [["#2c6ea8", 0], ["#d2452f", 0.3], ["#27ae60", 0.55], ["#8e44ad", 0.8]].forEach(([shirt, off], k) => {
+    const g = document.createElementNS(SVGNS, "g");
+    g.innerHTML = `<ellipse cx="0" cy="2" rx="4.5" ry="2" fill="rgba(0,0,0,0.25)"/><g class="bob" style="animation-delay:${k * 0.1}s"><rect x="-3.5" y="-9" width="7" height="10" rx="3" fill="${shirt}"/><circle cx="0" cy="-12" r="3.6" fill="#f1c27d"/></g>`;
+    walkers.appendChild(g);
+    if (REDUCED) { const p = route[k % 3]; g.setAttribute("transform", `translate(${p[0]} ${p[1]})`); return; }
+    g.animate(route.map((p) => ({ transform: `translate(${p[0]}px, ${p[1]}px)` })), { duration: 22000 + k * 3000, iterations: Infinity, direction: "alternate", delay: -off * 22000, easing: "linear" });
+  });
+}
+
+// ================= démarrage =================
+renderScenery();
+renderSoundBtn();
+seen = { raid: null, step: 0, table: myTable };
+renderAll(true);
+show(VIEWS.includes(tabStore.get("clash-view")) ? tabStore.get("clash-view") : "base");
+
+(async () => {
+  try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) { setStatus("Mode démo local : la partie n'est pas partagée entre les tables sur cet appareil."); return; }
+  setStatus("Partie partagée connectée : toutes les tables jouent en direct.");
+  let first = true, gotTables = false, resumed = false;
+  const maybeResume = () => {
+    if (resumed || first || !gotTables) return;
+    resumed = true;
+    if (state.phase === "raid" && RAID_BY_ID[state.current]) {
+      const fp = firstPending(RAID_BY_ID[state.current]);
+      if (fp >= 0) { seen = { raid: state.current, step: fp, table: myTable }; checkRaidProgress(); }
+    }
+  };
+  db.doc("game/state").onSnapshot((snap) => {
+    if (timers.cfg) return;
+    state = normState(snap.exists ? snap.data() : null);
+    if (first) { seen = { raid: state.phase === "raid" ? state.current : null, step: state.step, table: myTable }; }
+    else checkRaidProgress();
+    checkEvent(first); first = false;
+    renderAll(false);
+    maybeResume();
+  }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
+  db.collection("tables").onSnapshot((snap) => {
+    const next = {};
+    snap.docs.forEach((d) => { if (d.exists) next[d.id] = clone(d.data()); });
+    if (timers.n && tables[myTable]) next[myTable] = tables[myTable];
+    tables = next;
+    renderBase(false); renderGiant();
+    gotTables = true; maybeResume();
+    if (!$("view-mj").hidden && !(document.activeElement && String(document.activeElement.id).startsWith("c-"))) renderMJ();
+  }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
+})();
+</script>
+
+</body>
+</html>

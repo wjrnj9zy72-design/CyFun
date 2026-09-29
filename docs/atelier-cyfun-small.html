@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier CyFun Small</title>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working column; top bar with three views (Ma table / Plénière / Réglages); theme cards stacked, plenary as a heatmap grid. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #5a6776;
+  --line: #d9dfe6;
+  --accent: #1f5f8b;
+  --accent-soft: #e2edf5;
+  --ok: #2e7d4f;   --ok-bg: #dff1e6;
+  --mid: #b7791f;  --mid-bg: #fbeed3;
+  --ko: #b83a32;   --ko-bg: #f8dfdc;
+  --none: #e7ebef;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10161d; --surface: #18212b; --ink: #e6ebf0; --muted: #9aa7b5; --line: #2a3643;
+  --accent: #7db6dd; --accent-soft: #1d3345;
+  --ok: #6fcf97; --ok-bg: #173826; --mid: #e8b556; --mid-bg: #3a2e14; --ko: #f08a80; --ko-bg: #3f1d1a; --none: #25303c;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #10161d; --surface: #18212b; --ink: #e6ebf0; --muted: #9aa7b5; --line: #2a3643;
+  --accent: #7db6dd; --accent-soft: #1d3345;
+  --ok: #6fcf97; --ok-bg: #173826; --mid: #e8b556; --mid-bg: #3a2e14; --ko: #f08a80; --ko-bg: #3f1d1a; --none: #25303c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--f-body); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; padding-block: 20px 60px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.2rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+.eyebrow { font: 500 0.72rem/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+header.top .titles { display: grid; gap: 6px; min-width: 0; }
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.tabs button { font: 600 0.95rem var(--f-body); padding: 8px 14px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--surface); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.agenda { margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.agenda div { padding: 10px 12px; border-left: 1px solid var(--line); display: grid; gap: 2px; min-width: 0; }
+.agenda div:first-child { border-left: 0; }
+.agenda b { font: 500 0.8rem var(--f-mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.agenda span { font-size: 0.9rem; }
+@media (max-width: 640px) { .agenda { grid-template-columns: repeat(2, minmax(0, 1fr)); } .agenda div:nth-child(3) { border-left: 0; } .agenda div:nth-child(n+3) { border-top: 1px solid var(--line); } }
+
+.status-line { margin-top: 12px; font-size: 0.85rem; color: var(--muted); min-height: 1.3em; }
+
+.setup { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; padding: 14px 16px; background: var(--accent-soft); border-radius: 8px; }
+.setup label, .field { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; }
+select, input[type="text"], input[type="number"], textarea { font: 1rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+.setup input { width: 220px; max-width: 100%; }
+.progress { margin-left: auto; font: 500 0.85rem var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.themes { margin-top: 20px; display: grid; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+.card-head { display: flex; gap: 12px; align-items: baseline; }
+.num { font: 500 0.8rem var(--f-mono); color: var(--muted); flex: none; width: 2.2em; }
+.card-head .q { font-size: 1.05rem; font-weight: 600; margin-top: 4px; }
+.card-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 20px; padding-left: calc(2.2em + 12px); }
+.card-body p { margin: 0; font-size: 0.95rem; }
+.lab { display: block; font: 500 0.7rem var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.card-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-left: calc(2.2em + 12px); }
+.choice { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.choice button { font: 600 0.9rem var(--f-body); padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.choice button[data-s="ok"][aria-pressed="true"] { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.choice button[data-s="mid"][aria-pressed="true"] { background: var(--mid-bg); border-color: var(--mid); color: var(--mid); }
+.choice button[data-s="ko"][aria-pressed="true"] { background: var(--ko-bg); border-color: var(--ko); color: var(--ko); }
+.card-foot input { flex: 1 1 240px; min-width: 0; }
+@media (max-width: 640px) { .card-body { grid-template-columns: minmax(0, 1fr); padding-left: 0; } .card-foot { padding-left: 0; } }
+
+.reset { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.9rem; }
+.link-btn { font: 600 0.9rem var(--f-body); background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; }
+.danger { font: 600 0.9rem var(--f-body); background: var(--ko); color: var(--surface); border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.primary { font: 600 0.9rem var(--f-body); background: var(--accent); color: var(--surface); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+
+.plen-intro { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; font-size: 0.9rem; color: var(--muted); }
+.legend { display: inline-flex; gap: 14px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.grid-box { margin-top: 12px; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table.heat { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.92rem; }
+.heat th, .heat td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+.heat th { font: 500 0.75rem var(--f-mono); letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
+.heat th small { display: block; text-transform: none; letter-spacing: 0; font-family: var(--f-body); font-size: 0.78rem; }
+.heat td.name, .heat th.name { text-align: left; }
+.heat tr:last-child td { border-bottom: 0; }
+.cell { display: inline-block; width: 26px; height: 18px; border-radius: 4px; background: var(--none); }
+.cell.ok { background: var(--ok); } .cell.mid { background: var(--mid); } .cell.ko { background: var(--ko); }
+.bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--none); min-width: 90px; }
+.bar span.ok { background: var(--ok); } .bar span.mid { background: var(--mid); } .bar span.ko { background: var(--ko); }
+
+.top3 { margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.top3 .card { gap: 6px; }
+.top3 .rank { font: 500 0.75rem var(--f-mono); color: var(--ko); }
+.top3 p { margin: 0; font-size: 0.92rem; }
+@media (max-width: 720px) { .top3 { grid-template-columns: minmax(0, 1fr); } }
+.section-title { margin-top: 28px; }
+
+.notes { margin-top: 12px; display: grid; gap: 10px; }
+.notes details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.notes summary { cursor: pointer; font-weight: 600; }
+.notes ul { margin: 8px 0 0; padding-left: 18px; }
+.notes li { margin: 3px 0; }
+.notes li b { font: 500 0.78rem var(--f-mono); color: var(--muted); margin-right: 6px; }
+.empty { margin-top: 16px; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); background: var(--surface); }
+
+/* réglages */
+.settings { margin-top: 20px; display: grid; gap: 24px; }
+.settings .row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; }
+.settings input[type="number"] { width: 90px; font-variant-numeric: tabular-nums; }
+.hint { font-size: 0.88rem; color: var(--muted); margin: 6px 0 0; }
+.lib { display: grid; gap: 8px; margin-top: 10px; }
+.lib-item { display: flex; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.lib-item[data-off="true"] { opacity: 0.6; }
+.lib-item .txt { flex: 1; min-width: 0; }
+.lib-item .txt div { font-size: 0.85rem; color: var(--muted); overflow-wrap: anywhere; }
+.lib-item .tag { font: 500 0.68rem var(--f-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); margin-left: 6px; }
+.lib-item .ctl { display: inline-flex; gap: 2px; flex: none; }
+.icon-btn { font: 600 0.9rem var(--f-mono); width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.newtheme { display: grid; gap: 10px; margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.newtheme textarea { min-height: 3.2em; resize: vertical; width: 100%; }
+.newtheme input { width: 100%; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="titles">
+      <span class="eyebrow">CyberFundamentals · niveau Small · atelier en tables</span>
+      <h1>Atelier CyFun Small</h1>
+    </div>
+    <div class="tabs" role="tablist">
+      <button id="tab-table" role="tab" aria-selected="true">Ma table</button>
+      <button id="tab-plen" role="tab" aria-selected="false">Plénière</button>
+      <button id="tab-set" role="tab" aria-selected="false">Réglages</button>
+    </div>
+  </header>
+
+  <div class="agenda" id="agenda" aria-label="Déroulé de la session"></div>
+  <div class="status-line" id="status">Connexion à l'espace partagé…</div>
+
+  <section id="view-table">
+    <div class="setup">
+      <label for="sel-table">Table
+        <select id="sel-table"></select>
+      </label>
+      <label for="in-consultant">Consultant qui anime
+        <input type="text" id="in-consultant" placeholder="Prénom">
+      </label>
+      <span class="progress" id="progress"></span>
+    </div>
+    <div class="themes" id="themes"></div>
+    <div class="reset" id="reset-zone"></div>
+  </section>
+
+  <section id="view-plen" hidden>
+    <div class="plen-intro">
+      <span id="plen-count"></span>
+      <span class="legend">
+        <span><i style="background:var(--ok)"></i>En place</span>
+        <span><i style="background:var(--mid)"></i>Partiel</span>
+        <span><i style="background:var(--ko)"></i>À faire</span>
+        <span><i style="background:var(--none)"></i>Pas encore traité</span>
+      </span>
+    </div>
+    <div id="plen-body"></div>
+  </section>
+
+  <section id="view-set" hidden>
+    <div class="settings">
+      <div>
+        <h2>Format de la session</h2>
+        <p class="hint">Ces réglages sont partagés : tous les consultants voient le même déroulé et les mêmes thèmes.</p>
+        <div class="row" style="margin-top:12px">
+          <label class="field" for="set-tables">Nombre de tables
+            <input type="number" id="set-tables" min="1" max="12">
+          </label>
+          <label class="field" for="set-intro">Intro (min)
+            <input type="number" id="set-intro" min="0" max="120">
+          </label>
+          <label class="field" for="set-work">Tables (min)
+            <input type="number" id="set-work" min="5" max="180">
+          </label>
+          <label class="field" for="set-plen">Plénière (min)
+            <input type="number" id="set-plen" min="0" max="120">
+          </label>
+          <label class="field" for="set-close">Clôture (min)
+            <input type="number" id="set-close" min="0" max="60">
+          </label>
+        </div>
+        <p class="hint" id="set-summary"></p>
+      </div>
+
+      <div>
+        <h2>Thèmes abordés</h2>
+        <p class="hint">Cochez les thèmes à traiter et réordonnez-les. Les thèmes décochés restent disponibles pour une autre session.</p>
+        <div class="lib" id="lib"></div>
+      </div>
+
+      <div>
+        <h2>Ajouter un thème</h2>
+        <form class="newtheme" id="new-form">
+          <label class="field" for="nt-t">Titre court
+            <input type="text" id="nt-t" maxlength="40" placeholder="Ex. Télétravail" required>
+          </label>
+          <label class="field" for="nt-q">Question posée à la table
+            <textarea id="nt-q" maxlength="240" required></textarea>
+          </label>
+          <label class="field" for="nt-a">Point d'attention
+            <textarea id="nt-a" maxlength="400"></textarea>
+          </label>
+          <label class="field" for="nt-c">Réponse CISOaaS
+            <textarea id="nt-c" maxlength="300"></textarea>
+          </label>
+          <div><button class="primary" type="submit">Ajouter le thème</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// Bibliothèque de thèmes. "core" = activés par défaut.
+const LIBRARY = [
+  { id: "gouv", core: true, t: "Responsabilité",
+    q: "Une personne est-elle clairement responsable de la cybersécurité dans l'entreprise ?",
+    a: "Sans responsable désigné, les mesures restent des intentions. Le rôle peut être partiel, mais il doit être nommé et soutenu par la direction.",
+    c: "Le CISO externe porte ce rôle, fixe les priorités et rend compte à la direction." },
+  { id: "actifs", core: true, t: "Inventaire",
+    q: "Savez-vous quels équipements, logiciels et services cloud l'entreprise utilise ?",
+    a: "On ne protège pas ce qu'on ne connaît pas : portables personnels, anciens comptes cloud, logiciels installés par les utilisateurs.",
+    c: "Inventaire initial avec le prestataire IT, puis revue périodique." },
+  { id: "maj", core: true, t: "Mises à jour",
+    q: "Les systèmes et logiciels sont-ils mis à jour rapidement, y compris les équipements réseau ?",
+    a: "Les oublis classiques : pare-feu, NAS, logiciels métier, systèmes en fin de support qui ne reçoivent plus de correctifs.",
+    c: "Politique de mise à jour et suivi régulier avec le prestataire." },
+  { id: "acces", core: true, t: "Accès et MFA",
+    q: "La double authentification est-elle active sur la messagerie, l'accès à distance et les comptes admin ?",
+    a: "Comptes admin utilisés au quotidien, mots de passe partagés, comptes d'anciens collaborateurs encore actifs.",
+    c: "Revue des accès, règles de mots de passe et procédure arrivées/départs." },
+  { id: "protect", core: true, t: "Postes et réseau",
+    q: "Chaque poste a-t-il un antivirus actif, et le réseau est-il protégé par un pare-feu et un Wi-Fi invités séparé ?",
+    a: "Installé ne veut pas dire surveillé : qui lit les alertes ? Attention aussi aux mots de passe par défaut et au bureau à distance exposé sur Internet.",
+    c: "Vérification de la configuration et suivi des alertes." },
+  { id: "backup", core: true, t: "Sauvegardes",
+    q: "Avez-vous une copie de sauvegarde hors ligne, et avez-vous déjà testé une restauration ?",
+    a: "Une sauvegarde synchronisée en permanence est chiffrée avec le reste par un ransomware. Une sauvegarde jamais restaurée n'est pas une garantie.",
+    c: "Plan de sauvegarde et test de restauration planifié." },
+  { id: "sensib", core: true, t: "Sensibilisation",
+    q: "Le personnel sait-il reconnaître un phishing et à qui le signaler ?",
+    a: "Une formation par an ne suffit pas. Le plus important est que signaler une erreur ne soit jamais sanctionné.",
+    c: "Campagnes courtes et régulières, exercices de phishing." },
+  { id: "incident", core: true, t: "Incidents",
+    q: "En cas d'incident, savez-vous qui appeler et quoi faire dans la première heure ?",
+    a: "Les numéros utiles doivent être accessibles hors du système informatique. Pensez à l'assureur, au prestataire et au signalement au CCB (Safeonweb).",
+    c: "Fiche réflexe d'une page et exercice de simulation." },
+  { id: "tiers", t: "Prestataires",
+    q: "Vos prestataires IT et fournisseurs cloud ont-ils des engagements de sécurité écrits ?",
+    a: "Le prestataire a souvent un accès distant permanent avec des droits élevés. Qui contrôle cet accès, et que dit le contrat en cas d'incident ?",
+    c: "Revue des contrats et des accès des tiers." },
+  { id: "mail", t: "Messagerie",
+    q: "Votre messagerie filtre-t-elle le spam et protège-t-elle votre domaine contre l'usurpation ?",
+    a: "La fraude au président et les fausses factures passent par l'email. SPF, DKIM et DMARC empêchent qu'on envoie des mails en votre nom.",
+    c: "Contrôle de la configuration du domaine et de la messagerie." },
+  { id: "mobile", t: "Télétravail et mobiles",
+    q: "Les portables et smartphones professionnels sont-ils chiffrés et verrouillés ?",
+    a: "Un portable perdu dans le train, c'est une fuite de données. Wi-Fi publics, appareils personnels qui accèdent aux mails.",
+    c: "Règles d'usage et gestion centralisée des appareils." },
+  { id: "donnees", t: "Données sensibles",
+    q: "Savez-vous où se trouvent vos données sensibles (clients, RH, finances) et qui y a accès ?",
+    a: "Dossiers partagés ouverts à tous, exports dans des boîtes mail personnelles. Lien direct avec le RGPD.",
+    c: "Cartographie des données et revue des droits d'accès." },
+  { id: "nis2", t: "Obligations légales",
+    q: "Savez-vous si votre entreprise, ou l'un de vos gros clients, est concernée par NIS2 ?",
+    a: "Même hors du champ NIS2, les clients concernés répercutent des exigences sur leurs fournisseurs. CyFun sert de référence pour y répondre.",
+    c: "Analyse d'applicabilité et feuille de route vers le niveau CyFun adapté." },
+];
+const DEFAULT_CONFIG = {
+  tables: 6,
+  dur: { intro: 20, work: 40, plen: 20, close: 10 },
+  order: LIBRARY.filter((t) => t.core).map((t) => t.id),
+  custom: [],
+};
+const LABELS = { ok: "En place", mid: "Partiel", ko: "À faire" };
+
+const $ = (id) => document.getElementById(id);
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+let config = clone(DEFAULT_CONFIG);
+let tables = {};           // id -> { consultant, themes: { themeId: { s, n } } }
+let db = null;
+let myTable = store.get("cyfun-table") || "t1";
+let pendingConfirm = false;
+let builtKey = "";
+
+function allThemes() { return LIBRARY.concat(config.custom || []); }
+function activeThemes() {
+  const byId = Object.fromEntries(allThemes().map((t) => [t.id, t]));
+  return (config.order || []).map((id) => byId[id]).filter(Boolean);
+}
+function normalizeConfig(c) {
+  const out = Object.assign(clone(DEFAULT_CONFIG), c || {});
+  out.dur = Object.assign(clone(DEFAULT_CONFIG.dur), (c && c.dur) || {});
+  out.custom = Array.isArray(out.custom) ? out.custom : [];
+  out.order = Array.isArray(out.order) ? out.order : clone(DEFAULT_CONFIG.order);
+  out.tables = Math.min(12, Math.max(1, Number(out.tables) || 6));
+  return out;
+}
+
+// ---------- persistence ----------
+let writeChain = Promise.resolve();
+function queueWrite(fn) {
+  if (!db) return;
+  writeChain = writeChain.then(fn).catch((e) => setStatus(e && e.code === "invalid_argument"
+    ? "Vous n'avez pas les droits d'écriture : demandez un accès Contributeur à l'organisateur."
+    : "Enregistrement impossible pour l'instant, réessayez dans un instant."));
+}
+function saveTable(tableId) {
+  const body = clone(tables[tableId] || { consultant: "", themes: {} });
+  body.updatedAt = new Date().toISOString();
+  queueWrite(() => db.collection("tables").doc(tableId).set(body));
+}
+function saveConfig() {
+  const body = clone(config);
+  queueWrite(() => db.doc("config/session").set(body));
+}
+const timers = {};
+function later(key, fn) { clearTimeout(timers[key]); timers[key] = setTimeout(() => { delete timers[key]; fn(); }, 700); }
+function mine() {
+  if (!tables[myTable]) tables[myTable] = { consultant: "", themes: {} };
+  if (!tables[myTable].themes) tables[myTable].themes = {};
+  return tables[myTable];
+}
+function setStatus(msg) { $("status").textContent = msg; }
+
+// ---------- agenda ----------
+function fmt(min) { return Math.floor(min / 60) + ":" + String(min % 60).padStart(2, "0"); }
+function renderAgenda() {
+  const d = config.dur, n = activeThemes().length;
+  const per = n ? Math.floor(d.work / n) : 0;
+  const steps = [
+    [d.intro, "Approche et CISOaaS"],
+    [d.work, n ? `Tables : ${n} thème${n > 1 ? "s" : ""} × ${per} min` : "Tables : aucun thème choisi"],
+    [d.plen, "Plénière : lecture des résultats"],
+    [d.close, "Top 3 et prochaines étapes"],
+  ];
+  let t = 0, html = "";
+  steps.forEach(([m, label]) => { html += `<div><b>${fmt(t)} – ${fmt(t + m)}</b><span>${esc(label)}</span></div>`; t += m; });
+  $("agenda").innerHTML = html;
+  $("set-summary").textContent = `Durée totale : ${fmt(t).replace(":", "h")}. ${n ? `Environ ${per} min par thème en table.` : ""}${n && per < 4 ? " C'est court : retirez un thème ou allongez le temps en tables." : ""}`;
+}
+
+// ---------- view: ma table ----------
+function renderTableSelect() {
+  const sel = $("sel-table");
+  if (Number(myTable.slice(1)) > config.tables) myTable = "t1";
+  sel.innerHTML = "";
+  for (let i = 1; i <= config.tables; i++) {
+    const o = document.createElement("option");
+    o.value = "t" + i; o.textContent = "Table " + i;
+    sel.appendChild(o);
+  }
+  sel.value = myTable;
+}
+$("sel-table").addEventListener("change", (e) => {
+  myTable = e.target.value; store.set("cyfun-table", myTable);
+  pendingConfirm = false; renderTable(true);
+});
+$("in-consultant").addEventListener("input", (e) => {
+  mine().consultant = e.target.value; later("t-" + myTable, () => saveTable(myTable));
+});
+
+function buildThemes() {
+  const list = activeThemes();
+  const key = JSON.stringify(list);
+  if (key === builtKey) return;
+  builtKey = key;
+  const box = $("themes");
+  box.innerHTML = "";
+  if (!list.length) {
+    box.innerHTML = `<div class="empty">Aucun thème n'est sélectionné. Choisissez-les dans l'onglet Réglages.</div>`;
+    return;
+  }
+  list.forEach((th, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.dataset.id = th.id;
+    card.innerHTML = `
+      <div class="card-head">
+        <span class="num">${String(i + 1).padStart(2, "0")}</span>
+        <div><h3>${esc(th.t)}</h3><div class="q">${esc(th.q)}</div></div>
+      </div>
+      ${th.a || th.c ? `<div class="card-body">
+        <p>${th.a ? `<span class="lab">Point d'attention</span>${esc(th.a)}` : ""}</p>
+        <p>${th.c ? `<span class="lab">Réponse CISOaaS</span>${esc(th.c)}` : ""}</p>
+      </div>` : ""}
+      <div class="card-foot">
+        <div class="choice" role="group" aria-label="Situation de la table">
+          <button data-s="ok" aria-pressed="false">En place</button>
+          <button data-s="mid" aria-pressed="false">Partiel</button>
+          <button data-s="ko" aria-pressed="false">À faire</button>
+        </div>
+        <input type="text" id="note-${esc(th.id)}" placeholder="Ce que la table retient (exemple, question, anecdote)">
+      </div>`;
+    card.querySelectorAll(".choice button").forEach((b) => b.addEventListener("click", () => {
+      const t = mine();
+      const cur = Object.assign({}, t.themes[th.id]);
+      cur.s = cur.s === b.dataset.s ? null : b.dataset.s;
+      t.themes[th.id] = cur;
+      renderTable(false); renderPlen(); saveTable(myTable);
+    }));
+    card.querySelector("input").addEventListener("input", (e) => {
+      const t = mine();
+      t.themes[th.id] = Object.assign({}, t.themes[th.id], { n: e.target.value });
+      later("t-" + myTable, () => saveTable(myTable)); renderPlen();
+    });
+    box.appendChild(card);
+  });
+}
+
+function renderTable(syncInputs) {
+  buildThemes();
+  const t = tables[myTable] || { consultant: "", themes: {} };
+  const themes = t.themes || {};
+  let done = 0;
+  const list = activeThemes();
+  $("themes").querySelectorAll(".card").forEach((card) => {
+    const ans = themes[card.dataset.id] || {};
+    if (ans.s) done++;
+    card.querySelectorAll(".choice button").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.s === ans.s)));
+    const inp = card.querySelector("input");
+    if (syncInputs || document.activeElement !== inp) inp.value = ans.n || "";
+  });
+  const ci = $("in-consultant");
+  if (syncInputs || document.activeElement !== ci) ci.value = t.consultant || "";
+  $("progress").textContent = `${done} / ${list.length} thèmes`;
+  renderReset();
+}
+
+function renderReset() {
+  const z = $("reset-zone");
+  z.innerHTML = "";
+  if (!pendingConfirm) {
+    const b = document.createElement("button");
+    b.className = "link-btn"; b.textContent = "Effacer les réponses de cette table";
+    b.onclick = () => { pendingConfirm = true; renderReset(); };
+    z.appendChild(b);
+  } else {
+    const s = document.createElement("span");
+    s.textContent = `Effacer toutes les réponses de la table ${myTable.slice(1)} ?`;
+    const yes = document.createElement("button");
+    yes.className = "danger"; yes.textContent = "Effacer";
+    yes.onclick = () => {
+      tables[myTable] = { consultant: tables[myTable]?.consultant || "", themes: {} };
+      pendingConfirm = false; renderTable(true); renderPlen(); saveTable(myTable);
+    };
+    const no = document.createElement("button");
+    no.className = "link-btn"; no.textContent = "Annuler";
+    no.onclick = () => { pendingConfirm = false; renderReset(); };
+    z.append(s, yes, no);
+  }
+}
+
+// ---------- view: plénière ----------
+function renderPlen() {
+  const list = activeThemes();
+  const active = Object.keys(tables).filter((id) => {
+    if (Number(id.slice(1)) > config.tables) return false;
+    const th = tables[id].themes || {};
+    return list.some((x) => th[x.id] && (th[x.id].s || th[x.id].n));
+  }).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+
+  $("plen-count").textContent = active.length
+    ? `${active.length} table${active.length > 1 ? "s" : ""} sur ${config.tables} ont commencé à répondre · mise à jour en direct`
+    : "";
+  const body = $("plen-body");
+  if (!active.length || !list.length) {
+    body.innerHTML = `<div class="empty">Aucune réponse pour l'instant. Dès qu'un consultant marque un thème dans « Ma table », la grille se remplit ici en direct.</div>`;
+    return;
+  }
+
+  const stats = list.map((th) => {
+    const c = { ok: 0, mid: 0, ko: 0 };
+    active.forEach((id) => { const s = tables[id].themes?.[th.id]?.s; if (c[s] !== undefined) c[s]++; });
+    const n = c.ok + c.mid + c.ko;
+    return { th, c, n, gap: n ? (c.ko * 2 + c.mid) / (n * 2) : -1 };
+  });
+
+  let html = `<div class="grid-box"><table class="heat"><thead><tr><th class="name">Thème</th>`;
+  active.forEach((id) => {
+    const who = tables[id].consultant ? `<small>${esc(tables[id].consultant)}</small>` : "";
+    html += `<th>T${id.slice(1)}${who}</th>`;
+  });
+  html += `<th>Ensemble</th></tr></thead><tbody>`;
+  stats.forEach(({ th, c, n }) => {
+    html += `<tr><td class="name">${esc(th.t)}</td>`;
+    active.forEach((id) => {
+      const s = tables[id].themes?.[th.id]?.s;
+      html += `<td><span class="cell ${LABELS[s] ? s : ""}" title="${s && LABELS[s] ? LABELS[s] : "Pas encore traité"}"></span></td>`;
+    });
+    const w = (k) => n ? (c[k] / n * 100).toFixed(1) : 0;
+    html += `<td><div class="bar" title="${c.ok} en place · ${c.mid} partiel · ${c.ko} à faire">
+      <span class="ok" style="width:${w("ok")}%"></span><span class="mid" style="width:${w("mid")}%"></span><span class="ko" style="width:${w("ko")}%"></span></div></td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  const top = stats.filter((s) => s.n && s.gap > 0).sort((a, b) => b.gap - a.gap).slice(0, 3);
+  if (top.length) {
+    html += `<h2 class="section-title">${top.length === 1 ? "La lacune principale" : "Les " + top.length + " lacunes principales"} de la salle</h2><div class="top3">`;
+    top.forEach((s, i) => {
+      html += `<article class="card"><span class="rank">N° ${i + 1} · ${s.c.ko} à faire · ${s.c.mid} partiel</span>
+        <h3>${esc(s.th.t)}</h3>${s.th.c ? `<p>${esc(s.th.c)}</p>` : ""}</article>`;
+    });
+    html += `</div>`;
+  }
+
+  const withNotes = list.map((th) => ({ th, notes: active
+      .map((id) => ({ id, n: (tables[id].themes?.[th.id]?.n || "").trim() }))
+      .filter((x) => x.n) }))
+    .filter((x) => x.notes.length);
+  if (withNotes.length) {
+    html += `<h2 class="section-title">Ce que les tables ont retenu</h2><div class="notes">`;
+    withNotes.forEach(({ th, notes }) => {
+      html += `<details open><summary>${esc(th.t)} (${notes.length})</summary><ul>`;
+      notes.forEach((x) => { html += `<li><b>T${x.id.slice(1)}</b>${esc(x.n)}</li>`; });
+      html += `</ul></details>`;
+    });
+    html += `</div>`;
+  }
+  body.innerHTML = html;
+}
+
+// ---------- view: réglages ----------
+function renderSettings(syncInputs) {
+  const pairs = [["set-tables", config.tables], ["set-intro", config.dur.intro], ["set-work", config.dur.work],
+                 ["set-plen", config.dur.plen], ["set-close", config.dur.close]];
+  pairs.forEach(([id, v]) => { if (syncInputs || document.activeElement !== $(id)) $(id).value = v; });
+
+  const on = config.order;
+  const rest = allThemes().filter((t) => !on.includes(t.id));
+  const items = on.map((id) => allThemes().find((t) => t.id === id)).filter(Boolean).concat(rest);
+  const lib = $("lib");
+  lib.innerHTML = "";
+  items.forEach((th) => {
+    const enabled = on.includes(th.id);
+    const idx = on.indexOf(th.id);
+    const custom = th.id.startsWith("c-");
+    const row = document.createElement("div");
+    row.className = "lib-item"; row.dataset.off = String(!enabled);
+    row.innerHTML = `
+      <input type="checkbox" id="chk-${esc(th.id)}" ${enabled ? "checked" : ""} aria-label="Traiter ce thème">
+      <label class="txt" for="chk-${esc(th.id)}"><b>${esc(th.t)}</b>${custom ? '<span class="tag">ajouté</span>' : th.core ? "" : '<span class="tag">optionnel</span>'}<div>${esc(th.q)}</div></label>
+      <span class="ctl">
+        <button class="icon-btn" data-act="up" aria-label="Monter" ${!enabled || idx === 0 ? "disabled" : ""}>↑</button>
+        <button class="icon-btn" data-act="down" aria-label="Descendre" ${!enabled || idx === on.length - 1 ? "disabled" : ""}>↓</button>
+        ${custom ? '<button class="icon-btn" data-act="del" aria-label="Supprimer ce thème">×</button>' : ""}
+      </span>`;
+    row.querySelector("input").onchange = (e) => {
+      config.order = e.target.checked ? on.concat(th.id) : on.filter((x) => x !== th.id);
+      configChanged();
+    };
+    row.querySelectorAll(".icon-btn").forEach((b) => b.onclick = () => {
+      const o = config.order.slice();
+      if (b.dataset.act === "del") {
+        config.custom = config.custom.filter((c) => c.id !== th.id);
+        config.order = o.filter((x) => x !== th.id);
+      } else {
+        const j = idx + (b.dataset.act === "up" ? -1 : 1);
+        [o[idx], o[j]] = [o[j], o[idx]];
+        config.order = o;
+      }
+      configChanged();
+    });
+    lib.appendChild(row);
+  });
+}
+[["set-tables", "tables"], ["set-intro", "intro"], ["set-work", "work"], ["set-plen", "plen"], ["set-close", "close"]]
+  .forEach(([id, key]) => $(id).addEventListener("input", (e) => {
+    const v = Math.max(0, Math.round(Number(e.target.value)));
+    if (!Number.isFinite(v) || e.target.value === "") return;
+    if (key === "tables") config.tables = Math.min(12, Math.max(1, v));
+    else config.dur[key] = Math.min(240, v);
+    renderAll(false);
+    later("config", saveConfig);
+  }));
+$("new-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const th = { id: "c-" + Date.now().toString(36), t: $("nt-t").value.trim(), q: $("nt-q").value.trim(),
+               a: $("nt-a").value.trim(), c: $("nt-c").value.trim() };
+  if (!th.t || !th.q) return;
+  config.custom = config.custom.concat(th);
+  config.order = config.order.concat(th.id);
+  e.target.reset();
+  configChanged();
+  setStatus(`Thème « ${th.t} » ajouté à la session.`);
+});
+function configChanged() { renderAll(false); saveConfig(); }
+
+// ---------- tabs ----------
+function show(view) {
+  ["table", "plen", "set"].forEach((v) => {
+    $("view-" + v).hidden = v !== view;
+    $("tab-" + v).setAttribute("aria-selected", String(v === view));
+  });
+  store.set("cyfun-view", view);
+  if (view === "plen") renderPlen();
+}
+["table", "plen", "set"].forEach((v) => $("tab-" + v).onclick = () => show(v));
+
+function renderAll(sync) {
+  renderAgenda(); renderTableSelect(); renderTable(sync); renderPlen(); renderSettings(sync);
+}
+
+// ---------- boot ----------
+renderAll(true);
+show(["table", "plen", "set"].includes(store.get("cyfun-view")) ? store.get("cyfun-view") : "table");
+
+(async () => {
+  try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) {
+    setStatus("Mode local : les réponses restent sur cet appareil et ne sont pas partagées avec les autres tables.");
+    return;
+  }
+  setStatus("Espace partagé connecté : chaque table voit la plénière se remplir en direct.");
+  db.doc("config/session").onSnapshot((snap) => {
+    if (timers.config) return; // a local edit is about to be saved
+    config = normalizeConfig(snap.exists ? snap.data() : null);
+    renderAll(false);
+  }, () => setStatus("La connexion à l'espace partagé s'est interrompue. Rechargez la page."));
+  db.collection("tables").onSnapshot((snap) => {
+    const next = {};
+    snap.docs.forEach((d) => { if (d.exists) next[d.id] = clone(d.data()); });
+    if (timers["t-" + myTable] && tables[myTable]) next[myTable] = tables[myTable];
+    tables = next;
+    renderTable(false);
+    renderPlen();
+  }, () => setStatus("La connexion à l'espace partagé s'est interrompue. Rechargez la page."));
+})();
+</script>
+
+</body>
+</html>
