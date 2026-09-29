@@ -2,18 +2,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
 <style>
-/* Layout: game board. Resource bar on top, village map (3×3 buildings inside a wall that thickens with the network defenses) beside a context panel (inspection / construction / raid). Single deliberate game look, colors set explicitly. */
+/* Layout: game screen. HUD of resources on top, isometric village (SVG) beside a context panel; big-screen tab for projection. Single deliberate game look, colors set explicitly. */
 :root {
-  --sky: #cfe6f3;
+  --sky: #bfe0f2;
+  --sky-deep: #8cc6e6;
   --board: #fffaf0;
   --ink: #2a2118;
   --muted: #6b5d4d;
   --line: #e2d3b8;
   --wood: #8a5a2b;
   --wood-dark: #5e3b17;
-  --grass: #86b94f;
-  --grass-dark: #5f8f34;
-  --stone: #a3a9b1;
   --gold: #f0b429;
   --gold-dark: #b7830e;
   --red: #d2452f;
@@ -26,115 +24,140 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { background: var(--sky); color: var(--ink); font: 16px/1.45 var(--f-body); }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; padding-block: 18px 60px; }
+[hidden] { display: none !important; }
+body { background: linear-gradient(var(--sky-deep), var(--sky) 320px); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; padding-block: 16px 60px; }
 h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; line-height: 1.1; text-wrap: balance; letter-spacing: 0.01em; }
-h1 { font-size: 2rem; color: var(--wood-dark); }
+h1 { font-size: 2.1rem; color: #fff; -webkit-text-stroke: 1.5px var(--wood-dark); paint-order: stroke fill; text-shadow: 0 3px 0 var(--wood-dark); }
 h2 { font-size: 1.35rem; color: var(--wood-dark); }
-h3 { font-size: 1.1rem; }
+h3 { font-size: 1.08rem; }
 button { font-family: var(--f-body); }
-button:focus-visible, select:focus-visible, input:focus-visible, .tile:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+button:focus-visible, select:focus-visible, input:focus-visible, [data-b]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-header.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
-.brand { display: grid; gap: 2px; min-width: 0; }
-.brand small { font-weight: 700; color: var(--muted); font-size: 0.85rem; }
+header.top { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.brand small { font-weight: 800; color: var(--wood-dark); font-size: 0.85rem; }
 .tabs { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-.tabs button { font-weight: 800; font-size: 0.95rem; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--wood); background: var(--board); color: var(--wood-dark); cursor: pointer; }
-.tabs button[aria-selected="true"] { background: var(--wood); color: var(--board); }
+.tabs button { font-weight: 800; font-size: 0.95rem; padding: 8px 14px; border-radius: 12px; border: 2px solid var(--wood-dark); background: var(--board); color: var(--wood-dark); cursor: pointer; box-shadow: 0 3px 0 var(--wood-dark); }
+.tabs button[aria-selected="true"] { background: var(--gold); }
 
-.banner { margin-top: 14px; padding: 12px 16px; border-radius: 12px; background: var(--wood-dark); color: var(--board); display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
-.banner b { font-family: var(--f-display); font-weight: 400; font-size: 1.15rem; color: var(--gold); letter-spacing: 0.02em; }
-.status { margin-top: 8px; font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+.banner { margin-top: 14px; padding: 10px 16px; border-radius: 14px; background: var(--wood-dark); color: var(--board); display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; box-shadow: 0 4px 0 #3d260e; }
+.banner b { font-family: var(--f-display); font-weight: 400; font-size: 1.2rem; color: var(--gold); letter-spacing: 0.02em; }
+.status { margin-top: 8px; font-size: 0.82rem; font-weight: 700; color: var(--wood-dark); min-height: 1.2em; }
 
-.bar { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
-.bar label { display: grid; gap: 3px; font-size: 0.8rem; font-weight: 800; color: var(--muted); }
-select, input[type="text"], input[type="number"] { font: 700 1rem var(--f-body); color: var(--ink); background: var(--board); border: 2px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-.bar input[type="text"] { width: 200px; max-width: 100%; }
-.res { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; background: var(--board); border: 2px solid var(--line); border-radius: 999px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.res i { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font: 400 0.8rem var(--f-display); color: var(--board); font-style: normal; }
-.res.gold i { background: var(--gold); color: var(--wood-dark); }
-.res.troph i { background: var(--blue); }
-.res.hq i { background: var(--wood); }
-.res.neg { border-color: var(--red); color: var(--red); }
+.hud { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; }
+.hud label { display: grid; gap: 3px; font-size: 0.78rem; font-weight: 800; color: var(--wood-dark); }
+select, input[type="text"], input[type="number"] { font: 700 1rem var(--f-body); color: var(--ink); background: var(--board); border: 2px solid var(--wood); border-radius: 10px; padding: 6px 10px; }
+.hud input[type="text"] { width: 190px; max-width: 100%; }
 .spacer { flex: 1; }
+.pill { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 4px; background: rgba(42, 33, 24, 0.82); color: #fff; border-radius: 999px; font-weight: 800; font-variant-numeric: tabular-nums; border: 2px solid rgba(255, 255, 255, 0.5); }
+.pill svg { width: 32px; height: 32px; flex: none; }
+.pill.neg { color: #ffb4a8; }
+.pill.late { background: var(--red); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.6; } }
+.pill .fly { position: absolute; left: 36px; top: -4px; font: 400 1rem var(--f-display); color: var(--gold); -webkit-text-stroke: 1px var(--wood-dark); paint-order: stroke fill; animation: fly 1.1s ease-out forwards; pointer-events: none; }
+.pill .fly.plus { color: #9ef0a6; }
+@keyframes fly { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-34px); opacity: 0; } }
+.sound { height: 40px; padding: 0 12px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.5); background: rgba(42, 33, 24, 0.82); color: #fff; font-weight: 800; cursor: pointer; }
 
-.game { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 820px) { .game { grid-template-columns: minmax(0, 1fr); } }
+.game { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .game { grid-template-columns: minmax(0, 1fr); } }
+.stage-box { position: relative; min-width: 0; }
+svg.world { display: block; width: 100%; height: auto; overflow: visible; }
+svg.world text { font-family: var(--f-display); }
+[data-b] { cursor: pointer; }
+[data-b]:hover .bld { filter: brightness(1.08); }
+.sel-ring { stroke-dasharray: 10 7; animation: march 0.9s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -17; } }
+.pop { animation: pop 0.7s cubic-bezier(0.3, 1.7, 0.5, 1); transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pop { from { transform: scale(0.1); } to { transform: scale(1); } }
+.flame { animation: flick 0.35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+.flame.b { animation-duration: 0.5s; }
+@keyframes flick { from { transform: scale(0.85, 0.8); } to { transform: scale(1.05, 1.15); } }
+.smoke { animation: smoke 2.6s linear infinite; transform-box: fill-box; transform-origin: center; }
+.smoke.d2 { animation-delay: 0.9s; } .smoke.d3 { animation-delay: 1.7s; }
+@keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.75; } to { transform: translate(6px, -40px) scale(1.8); opacity: 0; } }
+.bob { animation: bob 0.3s ease-in-out infinite alternate; }
+@keyframes bob { to { transform: translateY(-3px); } }
+.hitflash { animation: hitflash 0.25s 4 alternate; }
+@keyframes hitflash { to { filter: brightness(1.7) sepia(1) hue-rotate(-40deg) saturate(4); } }
+.bounce { animation: bounce 1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes bounce { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
-.village { background: var(--grass); border-radius: 18px; padding: 14px; box-shadow: inset 0 0 0 4px var(--grass-dark); }
-.walls { border-radius: 12px; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; transition: border 0.3s; }
-.walls[data-lv="0"] { border: 2px dashed rgba(42, 33, 24, 0.35); }
-.walls[data-lv="1"] { border: 6px solid var(--wood); }
-.walls[data-lv="2"] { border: 9px double var(--stone); }
-.walls[data-lv="3"] { border: 12px ridge var(--stone); }
-.wall-cap { margin-top: 8px; font-size: 0.8rem; font-weight: 800; color: var(--wood-dark); text-align: center; }
+.result { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(20, 14, 8, 0.55); padding: 16px; }
+.result .card { background: var(--board); border: 4px solid var(--wood-dark); border-radius: 20px; padding: 18px 22px; text-align: center; display: grid; gap: 10px; justify-items: center; max-width: 380px; animation: pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); box-shadow: 0 8px 0 #3d260e; }
+.result h2 { font-size: 1.9rem; }
+.result h2.win { color: var(--green); } .result h2.lose { color: var(--red); }
+.big-stars { display: flex; gap: 8px; }
+.big-stars svg { width: 58px; height: 58px; }
+.big-stars .on { animation: starin 0.45s cubic-bezier(0.3, 1.8, 0.5, 1) both; }
+@keyframes starin { from { transform: scale(0) rotate(-60deg); } to { transform: scale(1) rotate(0); } }
+.result p { margin: 0; font-weight: 800; }
 
-.tile { position: relative; background: var(--board); border: 3px solid var(--wood); border-radius: 12px; padding: 0 0 8px; min-height: 108px; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 6px; overflow: hidden; color: var(--ink); }
-.tile .roof { height: 16px; background: var(--roof, var(--red)); border-bottom: 3px solid var(--wood); }
-.tile .nm { padding: 0 8px; font: 400 0.98rem/1.1 var(--f-display); letter-spacing: 0.01em; }
-.tile .chips { padding: 0 8px; display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { font-size: 0.7rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: var(--line); color: var(--wood-dark); overflow-wrap: anywhere; }
-.chip.lv1 { background: #f6e3b5; } .chip.lv2 { background: #f0c763; } .chip.lv3 { background: var(--gold-dark); color: var(--board); }
-.tile[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue); }
-.tile .flag { position: absolute; top: 2px; right: 6px; border: 2px solid var(--board); min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--red); color: var(--board); font-weight: 800; font-size: 0.75rem; display: grid; place-items: center; }
-.tile.hit { animation: shake 0.5s; border-color: var(--red); }
-@keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-
-.panel { background: var(--board); border: 3px solid var(--wood); border-radius: 16px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
-.panel .sub { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.panel { background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; box-shadow: 0 5px 0 #3d260e; }
+.panel .sub { color: var(--muted); font-size: 0.9rem; margin: 0; font-weight: 700; }
 .obs { display: grid; gap: 8px; }
-.obs button { text-align: left; font-size: 0.95rem; font-weight: 700; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; display: flex; gap: 10px; align-items: start; }
-.obs button .box { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--wood); display: grid; place-items: center; font-size: 0.8rem; font-weight: 800; }
+.obs button { text-align: left; font-size: 0.95rem; font-weight: 700; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; display: flex; gap: 10px; align-items: start; }
+.obs button .box { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--wood); display: grid; place-items: center; font-size: 0.85rem; font-weight: 800; }
 .obs button[aria-pressed="true"] { border-color: var(--red); background: var(--red-bg); }
 .obs button[aria-pressed="true"] .box { background: var(--red); border-color: var(--red); color: #fff; }
 .obs button:disabled { cursor: default; }
-.obs .verdict { display: block; font-size: 0.82rem; font-weight: 700; margin-top: 3px; }
+.verdict { display: block; font-size: 0.82rem; font-weight: 800; margin-top: 3px; }
 .verdict.good { color: var(--green); } .verdict.bad { color: var(--red); } .verdict.miss { color: var(--gold-dark); }
 
-.def { border: 2px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: #fff; }
+.def { border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 12px; background: #fff; align-items: start; }
+.def .icon { grid-row: span 3; width: 64px; height: 76px; background: #eef6e4; border-radius: 10px; }
 .def-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
-.pips { display: inline-flex; gap: 4px; }
-.pips span { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--gold-dark); background: #fff; }
-.pips span.on { background: var(--gold); }
-.lv-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.88rem; }
+.lvstars { display: inline-flex; gap: 2px; }
+.lvstars svg { width: 18px; height: 18px; }
+.lv-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 0.86rem; }
 .lv-list li { display: flex; gap: 8px; align-items: baseline; color: var(--muted); }
-.lv-list li.done { color: var(--ink); font-weight: 700; }
-.lv-list li b { font-variant-numeric: tabular-nums; flex: none; width: 3.2em; color: var(--gold-dark); }
+.lv-list li.done { color: var(--ink); font-weight: 800; }
+.lv-list li b { font-variant-numeric: tabular-nums; flex: none; width: 3.1em; color: var(--gold-dark); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.btn { font-weight: 800; font-size: 0.92rem; padding: 8px 14px; border-radius: 10px; border: 0; cursor: pointer; }
+.btn { font-weight: 800; font-size: 0.92rem; padding: 8px 14px; border-radius: 12px; border: 2px solid rgba(0, 0, 0, 0.25); cursor: pointer; }
 .btn.gold { background: var(--gold); color: var(--wood-dark); box-shadow: 0 3px 0 var(--gold-dark); }
+.btn.green { background: #5cc15f; color: #fff; box-shadow: 0 3px 0 #2f7d33; }
 .btn.plain { background: var(--line); color: var(--wood-dark); }
-.btn.red { background: var(--red); color: #fff; }
-.btn.blue { background: var(--blue); color: #fff; }
+.btn.red { background: var(--red); color: #fff; box-shadow: 0 3px 0 #8f2a1b; }
+.btn.blue { background: var(--blue); color: #fff; box-shadow: 0 3px 0 #1b4a73; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
 .btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
-.why { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+.why { font-size: 0.8rem; color: var(--muted); font-weight: 800; }
 
 .raid { display: grid; gap: 10px; }
-.raid .intro { margin: 0; font-weight: 700; }
-.stage { border-radius: 10px; padding: 10px 12px; border: 2px solid var(--line); background: #fff; display: grid; gap: 3px; }
-.stage .k { font: 400 0.8rem var(--f-display); letter-spacing: 0.04em; color: var(--muted); }
-.stage.win { border-color: var(--red); background: var(--red-bg); }
-.stage.block { border-color: var(--green); background: var(--green-bg); }
-.stage.off { opacity: 0.5; }
-.stage .res-line { font-size: 0.86rem; font-weight: 800; }
-.stage.win .res-line { color: var(--red); } .stage.block .res-line { color: var(--green); }
-.stage .hint { font-size: 0.82rem; color: var(--muted); }
-.stars { display: inline-flex; gap: 4px; font-size: 1.6rem; line-height: 1; }
-.stars span { color: var(--line); } .stars span.on { color: var(--gold); text-shadow: 0 2px 0 var(--gold-dark); }
-.outcome { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--wood-dark); color: var(--board); font-weight: 800; }
+.raid .intro { margin: 0; font-weight: 800; }
+.step { border-radius: 12px; padding: 10px 12px; border: 2px solid var(--line); background: #fff; display: grid; gap: 3px; }
+.step .k { font: 400 0.8rem var(--f-display); letter-spacing: 0.04em; color: var(--muted); }
+.step.win { border-color: var(--red); background: var(--red-bg); }
+.step.block { border-color: var(--green); background: var(--green-bg); }
+.step.off { opacity: 0.5; }
+.step .res-line { font-size: 0.86rem; font-weight: 800; }
+.step.win .res-line { color: var(--red); } .step.block .res-line { color: var(--green); }
+.step .hint { font-size: 0.82rem; color: var(--muted); font-weight: 700; }
 
-/* classement */
-.board-box { margin-top: 16px; background: var(--board); border: 3px solid var(--wood); border-radius: 16px; overflow-x: auto; }
+/* écran géant */
+.giant-head { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.minis { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.mini { background: var(--board); border: 3px solid var(--wood-dark); border-radius: 16px; padding: 8px 10px 10px; display: grid; gap: 4px; box-shadow: 0 4px 0 #3d260e; min-width: 0; }
+.mini .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mini .top b { font: 400 1.05rem var(--f-display); overflow-wrap: anywhere; }
+.mini .top span { font-weight: 800; font-size: 0.85rem; color: var(--blue); white-space: nowrap; }
+.mini .steps { display: flex; gap: 4px; }
+.mini .steps i { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+.mini .steps i.win { background: var(--red); } .mini .steps i.block { background: var(--green); }
+.board-box { margin-top: 16px; background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; overflow-x: auto; box-shadow: 0 5px 0 #3d260e; }
 table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-variant-numeric: tabular-nums; }
 .rank th, .rank td { padding: 9px 12px; border-bottom: 2px solid var(--line); text-align: center; font-weight: 700; }
 .rank th { font: 400 0.85rem var(--f-display); letter-spacing: 0.03em; color: var(--muted); }
 .rank td.l, .rank th.l { text-align: left; }
 .rank tr:last-child td { border-bottom: 0; }
-.rank .pos { font: 400 1.2rem var(--f-display); color: var(--wood); }
+.rank .pos { font: 400 1.25rem var(--f-display); color: var(--wood); }
+.rank tr:first-child .pos { color: var(--gold-dark); }
 .mini-stars { color: var(--gold-dark); letter-spacing: 1px; }
 .mini-stars .z { color: var(--green); }
-.debrief { margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.debrief { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 760px) { .debrief { grid-template-columns: minmax(0, 1fr); } }
 .debrief .panel { gap: 8px; }
 .debrief ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 0.9rem; }
@@ -147,11 +170,11 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
 .mj label { display: grid; gap: 3px; font-size: 0.8rem; font-weight: 800; color: var(--muted); }
 .mj input[type="number"] { width: 90px; }
 .raid-pick { display: grid; gap: 8px; }
-.raid-pick .it { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: #fff; }
+.raid-pick .it { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: #fff; }
 .raid-pick .it .txt { min-width: 0; flex: 1 1 240px; }
-.raid-pick .it .txt div { font-size: 0.85rem; color: var(--muted); }
+.raid-pick .it .txt div { font-size: 0.85rem; color: var(--muted); font-weight: 700; }
 .raid-pick .it.done { opacity: 0.55; }
-.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 700; }
+.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 800; }
 </style>
 
 <div class="wrap">
@@ -162,7 +185,7 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
     </div>
     <nav class="tabs" role="tablist">
       <button id="tab-base" role="tab" aria-selected="true">Ma base</button>
-      <button id="tab-rank" role="tab" aria-selected="false">Classement</button>
+      <button id="tab-giant" role="tab" aria-selected="false">Écran géant</button>
       <button id="tab-mj" role="tab" aria-selected="false">Maître du jeu</button>
     </nav>
   </header>
@@ -171,25 +194,30 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
   <div class="status" id="status">Connexion à la partie…</div>
 
   <section id="view-base">
-    <div class="bar">
+    <div class="hud">
       <label for="sel-table">Table <select id="sel-table"></select></label>
-      <label for="in-name">Équipe ou consultant <input type="text" id="in-name" maxlength="30" placeholder="Nom d'équipe"></label>
+      <label for="in-name">Équipe <input type="text" id="in-name" maxlength="30" placeholder="Nom d'équipe"></label>
       <span class="spacer"></span>
-      <span class="res gold" id="r-gold"><i>€</i><span></span></span>
-      <span class="res troph" id="r-troph"><i>T</i><span></span></span>
-      <span class="res hq" id="r-hq"><i>QG</i><span></span></span>
+      <span class="pill" id="r-gold"></span>
+      <span class="pill" id="r-troph"></span>
+      <span class="pill" id="r-hq"></span>
+      <span class="pill" id="r-timer" hidden></span>
+      <button class="sound" id="btn-sound" aria-pressed="false">Son : non</button>
     </div>
     <div class="game">
-      <div class="village">
-        <div class="walls" id="walls"></div>
-        <div class="wall-cap" id="wall-cap"></div>
+      <div class="stage-box">
+        <svg class="world" id="world" viewBox="-395 -95 790 510" role="group" aria-label="Village de l'Atelier Boisvert">
+          <g id="layer-world"></g>
+          <g id="layer-fx"></g>
+        </svg>
+        <div class="result" id="result" hidden></div>
       </div>
       <aside class="panel" id="panel" aria-live="polite"></aside>
     </div>
   </section>
 
-  <section id="view-rank" hidden>
-    <div id="rank-body"></div>
+  <section id="view-giant" hidden>
+    <div id="giant-body"></div>
   </section>
 
   <section id="view-mj" hidden>
@@ -198,64 +226,65 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
 </div>
 
 <script>
-// ---------------- contenu du jeu ----------------
+// ================= contenu du jeu =================
 const BUILDINGS = [
-  { id: "presta", name: "Accès prestataire", roof: "#6c7a89" },
-  { id: "hq", name: "Bureau du gérant", roof: "#c0392b" },
-  { id: "compta", name: "Comptabilité", roof: "#8e5bb5" },
-  { id: "wifi", name: "Wi-Fi et routeur", roof: "#2c6ea8" },
-  { id: "srv", name: "Serveur et NAS", roof: "#34495e" },
-  { id: "mail", name: "Messagerie cloud", roof: "#1f8a8a" },
-  { id: "laptop", name: "Portable du commercial", roof: "#d35400" },
-  { id: "pc", name: "Postes du bureau", roof: "#27ae60" },
-  { id: "atelier", name: "Atelier et machine CNC", roof: "#a0522d" },
+  { id: "presta", name: "Accès prestataire" },
+  { id: "hq", name: "Bureau du gérant" },
+  { id: "compta", name: "Comptabilité" },
+  { id: "wifi", name: "Wi-Fi et routeur" },
+  { id: "srv", name: "Serveur et NAS" },
+  { id: "mail", name: "Messagerie cloud" },
+  { id: "laptop", name: "Voiture du commercial" },
+  { id: "pc", name: "Bureaux" },
+  { id: "atelier", name: "Atelier et CNC" },
 ];
+const B_BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b]));
 
 const DEFS = {
-  gouv:     { b: "hq", name: "QG cyber", lv: [
+  gouv:     { b: "hq", slot: 0, color: "#f0b429", name: "QG cyber", lv: [
     [10, "Un responsable cyber est nommé"],
     [20, "La direction valide une politique et des priorités"],
     [30, "Un CISO (interne ou CISOaaS) pilote, avec une revue chaque trimestre"]] },
-  incident: { b: "hq", name: "Plan de crise", lv: [
+  incident: { b: "hq", slot: 1, color: "#e67e22", name: "Plan de crise", lv: [
     [10, "Fiche réflexe : qui appeler, quoi débrancher"],
     [10, "Contacts hors ligne : prestataire, banque, assureur"],
     [15, "Exercice de crise réalisé chaque année"]] },
-  access:   { b: "presta", name: "Porte des accès", lv: [
+  access:   { b: "presta", slot: 0, color: "#5d6d7e", name: "Porte des accès", lv: [
     [10, "Comptes nominatifs, départs désactivés le jour même"],
     [15, "Plus personne n'est administrateur au quotidien"],
     [20, "Accès du prestataire fermé par défaut, ouvert sur demande"]] },
-  aware:    { b: "compta", name: "Caserne sensibilisation", lv: [
+  aware:    { b: "compta", slot: 0, color: "#8e44ad", name: "Caserne sensibilisation", lv: [
     [10, "Session de sensibilisation annuelle"],
     [15, "Faux phishing réguliers, signalement en un clic"],
     [15, "Double vérification de tout changement de RIB"]] },
-  fw:       { b: "wifi", name: "Remparts réseau", lv: [
+  fw:       { b: "wifi", slot: 0, color: "#8a5a2b", name: "Remparts réseau", lv: [
     [10, "Mots de passe d'usine changés, pare-feu actif"],
     [10, "Wi-Fi invités séparé du réseau interne"],
     [20, "Réseau de l'atelier séparé du bureau"]] },
-  backup:   { b: "srv", name: "Coffre des sauvegardes", lv: [
+  backup:   { b: "srv", slot: 0, color: "#2e86c1", name: "Coffre des sauvegardes", lv: [
     [10, "Sauvegarde quotidienne automatique"],
     [15, "Une copie hors ligne ou non modifiable"],
     [15, "Restauration testée chaque trimestre"]] },
-  mfa:      { b: "mail", name: "Tour MFA", lv: [
+  mfa:      { b: "mail", slot: 0, color: "#16a085", name: "Tour MFA", lv: [
     [15, "Double authentification sur les comptes admin"],
     [15, "Double authentification sur la messagerie de tous"],
     [20, "Double authentification sur tous les accès à distance"]] },
-  device:   { b: "laptop", name: "Bouclier mobile", lv: [
+  device:   { b: "laptop", slot: 0, color: "#e74c3c", name: "Bouclier mobile", lv: [
     [5, "Code de verrouillage sur portables et smartphones"],
     [10, "Disques des portables chiffrés"],
     [15, "Effacement à distance en cas de perte"]] },
-  patch:    { b: "pc", name: "Forge des mises à jour", lv: [
+  patch:    { b: "pc", slot: 0, color: "#27ae60", name: "Forge des mises à jour", lv: [
     [10, "Mises à jour automatiques sur les postes"],
     [15, "Serveur, NAS et routeur mis à jour chaque mois"],
     [25, "Systèmes obsolètes remplacés ou isolés"]] },
-  av:       { b: "pc", name: "Canon antivirus", lv: [
+  av:       { b: "pc", slot: 1, color: "#c0392b", name: "Canon antivirus", lv: [
     [10, "Antivirus actif sur tous les postes"],
     [15, "Les alertes sont lues et traitées"],
     [25, "EDR surveillé par un prestataire"]] },
 };
 const DEF_IDS = Object.keys(DEFS);
 
-// Observations de la phase « Trouvez les failles ». f = 1 : c'est une faille ; fix = la défense qui la corrige.
+// Phase « Trouvez les failles ». f = 1 : faille ; fix = défense et niveau qui la corrigent.
 const OBS = {
   hq: [
     { id: "hq1", f: 1, t: "Le mot de passe du gérant est sur un post-it sous le clavier.", fix: ["aware", 1] },
@@ -297,57 +326,59 @@ const OBS = {
 };
 const ALL_OBS = Object.values(OBS).flat();
 
-// Raids : 3 étapes ; chaque étape est bloquée si UNE des défenses listées atteint le niveau indiqué.
+// Raids : 3 étapes [texte, parades, bâtiment visé]. Une étape est bloquée si UNE parade est atteinte.
 const RAIDS = [
-  { id: "phish", name: "Raid hameçonnage", hit: ["mail", "hq"],
+  { id: "phish", name: "Raid hameçonnage",
     intro: "Un faux mail « Votre boîte mail est pleine » arrive chez les 22 employés.",
     steps: [
-      ["Un employé clique et saisit son mot de passe", [["aware", 2]]],
-      ["L'attaquant se connecte à sa messagerie", [["mfa", 2]]],
-      ["Il envoie de fausses factures à vos clients depuis votre adresse", [["incident", 2]]]] },
-  { id: "rib", name: "Raid faux RIB", hit: ["compta"],
+      ["Un employé clique et saisit son mot de passe", [["aware", 2]], "pc"],
+      ["L'attaquant se connecte à sa messagerie", [["mfa", 2]], "mail"],
+      ["Il envoie de fausses factures à vos clients depuis votre adresse", [["incident", 2]], "hq"]] },
+  { id: "rib", name: "Raid faux RIB",
     intro: "Un fournisseur habituel annonce qu'il « change de banque ».",
     steps: [
-      ["La comptabilité reçoit un mail crédible avec un nouveau RIB", []],
-      ["Le RIB est modifié sans vérification", [["aware", 3]]],
-      ["Un virement de 48 000 € part vers l'escroc", [["incident", 2]]]] },
-  { id: "ransom", name: "Raid rançongiciel", hit: ["presta", "srv", "atelier"],
+      ["La comptabilité reçoit un mail crédible avec un nouveau RIB", [], "compta"],
+      ["Le RIB est modifié sans vérification", [["aware", 3]], "compta"],
+      ["Un virement de 48 000 € part vers l'escroc", [["incident", 2]], "hq"]] },
+  { id: "ransom", name: "Raid rançongiciel",
     intro: "Un groupe criminel scanne Internet à la recherche d'accès à distance ouverts.",
     steps: [
-      ["Il devine le mot de passe de l'accès du prestataire", [["access", 3], ["mfa", 3]]],
-      ["Il se propage jusqu'au serveur et à l'atelier", [["patch", 2], ["av", 2]]],
-      ["Tout est chiffré, sauvegardes comprises", [["backup", 2]]]] },
-  { id: "laptop", name: "Raid vol de portable", hit: ["laptop"],
+      ["Il devine le mot de passe de l'accès du prestataire", [["access", 3], ["mfa", 3]], "presta"],
+      ["Il se propage jusqu'au serveur et à l'atelier", [["patch", 2], ["av", 2]], "srv"],
+      ["Tout est chiffré, sauvegardes comprises", [["backup", 2]], "atelier"]] },
+  { id: "laptop", name: "Raid vol de portable",
     intro: "Le portable du commercial disparaît de sa voiture sur un parking à Liège.",
     steps: [
-      ["Le portable est volé", []],
-      ["Le voleur lit les devis et le fichier clients", [["device", 2]]],
-      ["Il ouvre la messagerie restée connectée", [["device", 3], ["incident", 1]]]] },
-  { id: "wifi", name: "Raid Wi-Fi", hit: ["wifi", "srv"],
+      ["Le portable est volé", [], "laptop"],
+      ["Le voleur lit les devis et le fichier clients", [["device", 2]], "laptop"],
+      ["Il ouvre la messagerie restée connectée", [["device", 3], ["incident", 1]], "mail"]] },
+  { id: "wifi", name: "Raid Wi-Fi",
     intro: "Un visiteur patiente dans la salle d'attente avec son ordinateur portable.",
     steps: [
-      ["Il se connecte au routeur avec le mot de passe d'usine", [["fw", 1]]],
-      ["Il atteint le NAS qui n'est plus mis à jour", [["fw", 2], ["patch", 2]]],
-      ["Il copie les plans et la liste des clients", [["av", 3]]]] },
-  { id: "usb", name: "Raid clé USB", hit: ["atelier", "pc"],
+      ["Il se connecte au routeur avec le mot de passe d'usine", [["fw", 1]], "wifi"],
+      ["Il atteint le NAS qui n'est plus mis à jour", [["fw", 2], ["patch", 2]], "srv"],
+      ["Il copie les plans et la liste des clients", [["av", 3]], "srv"]] },
+  { id: "usb", name: "Raid clé USB",
     intro: "Une clé USB « Plans 2027 » traîne sur le parking de l'atelier.",
     steps: [
-      ["Un ouvrier la branche sur le PC de la CNC", [["aware", 1]]],
-      ["Le logiciel malveillant s'installe avec les droits admin", [["av", 1], ["access", 2]]],
-      ["Il se propage et arrête la production", [["fw", 3], ["patch", 3]]]] },
+      ["Un ouvrier la branche sur le PC de la CNC", [["aware", 1]], "atelier"],
+      ["Le logiciel malveillant s'installe avec les droits admin", [["av", 1], ["access", 2]], "atelier"],
+      ["Il se propage et arrête la production", [["fw", 3], ["patch", 3]], "pc"]] },
 ];
 const RAID_BY_ID = Object.fromEntries(RAIDS.map((r) => [r.id, r]));
 
 const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, loss: [0, 10, 25, 45] };
-const INITIAL_STATE = { phase: "reco", current: null, step: 0, played: [], results: {}, cfg: DEFAULT_CFG };
+const INITIAL_STATE = { phase: "reco", current: null, step: 0, played: [], results: {}, timer: null, cfg: DEFAULT_CFG };
 
-// ---------------- utilitaires ----------------
+// ================= utilitaires =================
 const $ = (id) => document.getElementById(id);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
                 set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
 const defLabel = (d, l) => `${DEFS[d].name} niv. ${l}`;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, REDUCED ? 0 : ms));
 
 let db = null;
 let state = clone(INITIAL_STATE);
@@ -355,6 +386,10 @@ let tables = {};
 let myTable = store.get("clash-table") || "t1";
 let selected = store.get("clash-building") || "hq";
 let confirmReset = false;
+let justBuilt = null;      // { d, at } pour l'animation de construction
+let pendingFire = new Set(); // étapes en cours d'animation : pas encore de feu
+let seen = { raid: null, step: 0, table: null };
+let resultShownFor = null;
 
 function normState(s) {
   const o = Object.assign(clone(INITIAL_STATE), s || {});
@@ -362,14 +397,13 @@ function normState(s) {
   if (!Array.isArray(o.cfg.loss) || o.cfg.loss.length !== 4) o.cfg.loss = DEFAULT_CFG.loss.slice();
   o.played = Array.isArray(o.played) ? o.played : [];
   o.results = o.results || {};
+  o.timer = o.timer && o.timer.end ? o.timer : null;
   return o;
 }
-function tbl(id) {
-  const t = tables[id] || {};
-  return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {} };
-}
+function tbl(id) { const t = tables[id] || {}; return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {} }; }
+function tableIds() { return Array.from({ length: state.cfg.tables }, (_, i) => "t" + (i + 1)); }
 
-// ---------------- règles ----------------
+// ================= règles =================
 function spent(levels) {
   let s = 0;
   DEF_IDS.forEach((d) => { for (let i = 0; i < (levels[d] || 0); i++) s += DEFS[d].lv[i][0]; });
@@ -386,30 +420,24 @@ function recoBonus(flags) {
   return Math.max(0, (r.good - r.bad) * state.cfg.bonus);
 }
 function income(tid) {
-  let s = 0;
-  state.played.forEach((rid) => {
-    const res = state.results[rid] && state.results[rid][tid];
-    const stars = res ? res.s : 3;
-    s += state.cfg.revenue - (state.cfg.loss[stars] || 0);
-  });
-  return s;
-}
-function budget(tid) {
-  const t = tbl(tid);
-  return state.cfg.start + recoBonus(t.flags) + income(tid) - spent(t.levels);
-}
-function trophies(tid) {
   return state.played.reduce((s, rid) => {
     const res = state.results[rid] && state.results[rid][tid];
-    return s + (res ? (3 - res.s) * 10 : 0);
+    return s + state.cfg.revenue - (state.cfg.loss[res ? res.s : 3] || 0);
   }, 0);
+}
+function budget(tid) { const t = tbl(tid); return state.cfg.start + recoBonus(t.flags) + income(tid) - spent(t.levels); }
+function trophies(tid) {
+  return state.played.reduce((s, rid) => { const res = state.results[rid] && state.results[rid][tid]; return s + (res ? (3 - res.s) * 10 : 0); }, 0);
 }
 function cap(d, levels) { return d === "gouv" ? 3 : Math.min(3, (levels.gouv || 0) + 1); }
 function minLevel(tid, d) {
-  // on ne peut pas démolir ce qui était en place lors du dernier raid terminé
   const last = state.played[state.played.length - 1];
   const res = last && state.results[last] && state.results[last][tid];
   return res && res.lv ? (res.lv[d] || 0) : 0;
+}
+function canUpgrade(tid, d) {
+  const lv = tbl(tid).levels, l = lv[d] || 0, next = DEFS[d].lv[l];
+  return state.phase === "build" && !!next && l < cap(d, lv) && next[0] <= budget(tid);
 }
 function resolve(raid, levels) {
   for (let i = 0; i < raid.steps.length; i++) {
@@ -418,8 +446,235 @@ function resolve(raid, levels) {
   }
   return { stars: 3, blockedAt: -1, by: [] };
 }
+// bâtiments en feu pendant le raid en cours
+function firesFor(levels) {
+  const f = new Set();
+  if (state.phase !== "raid" || !RAID_BY_ID[state.current]) return f;
+  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels);
+  for (let i = 0; i < state.step; i++) {
+    if (r.blockedAt >= 0 && i >= r.blockedAt) break;
+    if (!pendingFire.has(i)) f.add(raid.steps[i][2]);
+  }
+  return f;
+}
 
-// ---------------- écriture ----------------
+// ================= son =================
+let audio = null, soundOn = store.get("clash-sound") === "1";
+function tone(f, d = 0.12, type = "square", vol = 0.05, delay = 0) {
+  if (!soundOn) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = audio.currentTime + delay, o = audio.createOscillator(), g = audio.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g).connect(audio.destination); o.start(t0); o.stop(t0 + d + 0.02);
+  } catch {}
+}
+const SFX = {
+  build() { tone(523, 0.1); tone(659, 0.1, "square", 0.05, 0.08); tone(784, 0.18, "square", 0.05, 0.16); },
+  coin() { tone(988, 0.08, "triangle", 0.07); tone(1319, 0.14, "triangle", 0.07, 0.07); },
+  flag() { tone(440, 0.07, "triangle", 0.06); },
+  march() { [0, 0.22, 0.44, 0.66, 0.88, 1.1].forEach((t) => tone(98, 0.08, "sawtooth", 0.04, t)); },
+  block() { tone(1200, 0.18, "sine", 0.08); tone(1800, 0.25, "sine", 0.06, 0.08); },
+  hit() { tone(90, 0.4, "sawtooth", 0.09); tone(60, 0.5, "square", 0.05, 0.06); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, "square", 0.05, i * 0.12)); },
+  lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.28, "sawtooth", 0.05, i * 0.18)); },
+  alarm() { [0, 0.3, 0.6].forEach((t) => { tone(880, 0.15, "square", 0.05, t); tone(660, 0.15, "square", 0.05, t + 0.15); }); },
+};
+$("btn-sound").onclick = () => {
+  soundOn = !soundOn; store.set("clash-sound", soundOn ? "1" : "0"); renderSoundBtn(); if (soundOn) SFX.coin();
+};
+function renderSoundBtn() { $("btn-sound").textContent = "Son : " + (soundOn ? "oui" : "non"); $("btn-sound").setAttribute("aria-pressed", String(soundOn)); }
+
+// ================= dessin isométrique =================
+const TW = 84, TH = 42; // taille d'une case
+const iso = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2];
+const P = (a) => a.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]
+    .map((v) => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f));
+  return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+const OUT = 'stroke="#2a2118" stroke-opacity="0.45" stroke-width="1.2" stroke-linejoin="round"';
+function corners(X, Y, s) { return { N: [X, Y - s * TH], E: [X + s * TW, Y], S: [X, Y + s * TH], Wc: [X - s * TW, Y] }; }
+const up = (p, h) => [p[0], p[1] - h];
+function box(X, Y, s, h, col, top) {
+  const { N, E, S, Wc } = corners(X, Y, s);
+  return `<polygon points="${P([Wc, S, up(S, h), up(Wc, h)])}" fill="${shade(col, -0.28)}" ${OUT}/>` +
+    `<polygon points="${P([S, E, up(E, h), up(S, h)])}" fill="${shade(col, -0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), up(S, h), up(Wc, h)])}" fill="${top || shade(col, 0.18)}" ${OUT}/>`;
+}
+function roof(X, Y, s, h, r, col) {
+  const { N, E, S, Wc } = corners(X, Y, s), a = [X, Y - h - r];
+  return `<polygon points="${P([up(Wc, h), up(N, h), a])}" fill="${shade(col, 0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), a])}" fill="${shade(col, 0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(Wc, h), up(S, h), a])}" fill="${shade(col, -0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(S, h), up(E, h), a])}" fill="${col}" ${OUT}/>`;
+}
+function faceR(X, Y, s, u1, u2, t1, t2, fill) {
+  const S = [X, Y + s * TH], E = [X + s * TW, Y], p = (u, t) => [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function faceL(X, Y, s, u1, u2, t1, t2, fill) {
+  const A = [X - s * TW, Y], S = [X, Y + s * TH], p = (u, t) => [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function windowsRow(X, Y, s, n, t1, t2, fill) {
+  let out = "";
+  for (let i = 0; i < n; i++) {
+    const u1 = (i + 0.25) / n, u2 = (i + 0.75) / n;
+    out += faceR(X, Y, s, u1, u2, t1, t2, fill) + faceL(X, Y, s, u1, u2, t1, t2, shade(fill, -0.25));
+  }
+  return out;
+}
+
+// Chaque bâtiment renvoie son dessin et sa hauteur (pour l'étiquette et le feu).
+function drawBuilding(id, X, Y) {
+  switch (id) {
+    case "hq": return { h: 100, svg: box(X, Y, 0.75, 44, "#efe0bf") + windowsRow(X, Y, 0.75, 3, 16, 32, "#5a86b0") +
+      faceL(X, Y, 0.75, 0.42, 0.58, 0, 22, "#6b4423") + roof(X, Y, 0.75, 44, 34, "#c0392b") +
+      `<line x1="${X}" y1="${Y - 78}" x2="${X}" y2="${Y - 104}" stroke="#4a3520" stroke-width="2.5"/>` +
+      `<polygon class="bounce" points="${P([[X, Y - 104], [X + 20, Y - 98], [X, Y - 92]])}" fill="#f0b429" stroke="#8a5a2b"/>` };
+    case "mail": return { h: 96, svg: box(X, Y, 0.55, 66, "#e3f4f1", "#1f8a8a") +
+      [14, 30, 46].map((t) => faceR(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#1f8a8a") + faceL(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#176b6b")).join("") +
+      `<line x1="${X}" y1="${Y - 66}" x2="${X}" y2="${Y - 94}" stroke="#4a4a4a" stroke-width="2.5"/>` +
+      `<ellipse cx="${X + 9}" cy="${Y - 86}" rx="9" ry="5" fill="#f5f5f5" stroke="#4a4a4a" transform="rotate(-25 ${X + 9} ${Y - 86})"/>` +
+      faceR(X, Y, 0.55, 0.3, 0.7, 52, 62, "#fff") };
+    case "srv": return { h: 62, svg: box(X, Y, 0.6, 60, "#3a4a5c", "#566779") +
+      [10, 20, 30, 40, 50].map((t, i) => faceR(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#24303d") + faceR(X, Y, 0.6, 0.12 + (i % 3) * 0.08, 0.2 + (i % 3) * 0.08, t, t + 4, "#56d364")).join("") +
+      [10, 20, 30, 40, 50].map((t) => faceL(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#1b2530")).join("") };
+    case "wifi": return { h: 96, svg: box(X, Y, 0.42, 24, "#e8eef5") + roof(X, Y, 0.42, 24, 14, "#2c6ea8") +
+      `<line x1="${X}" y1="${Y - 36}" x2="${X}" y2="${Y - 88}" stroke="#4a4a4a" stroke-width="3"/>` +
+      `<circle cx="${X}" cy="${Y - 90}" r="4" fill="#d2452f"/>` +
+      [10, 18, 26].map((r) => `<path d="M ${X - r} ${Y - 84 - r * 0.5} Q ${X} ${Y - 94 - r} ${X + r} ${Y - 84 - r * 0.5}" fill="none" stroke="#2c6ea8" stroke-width="2.5" stroke-linecap="round" opacity="${1 - r / 40}"/>`).join("") };
+    case "compta": return { h: 72, svg: box(X, Y, 0.65, 40, "#f1e6fa") + windowsRow(X, Y, 0.65, 2, 14, 28, "#6c8fbf") +
+      roof(X, Y, 0.65, 40, 30, "#8e5bb5") +
+      `<circle cx="${X + 26}" cy="${Y - 30}" r="9" fill="#f0b429" stroke="#8a5a2b" stroke-width="1.5"/><text x="${X + 26}" y="${Y - 26}" font-size="11" text-anchor="middle" fill="#5e3b17">€</text>` };
+    case "laptop": {
+      const w = (u) => { const A = [X - 0.55 * TW, Y], S = [X, Y + 0.55 * TH]; return [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u]; };
+      const w2 = (u) => { const S = [X, Y + 0.55 * TH], E = [X + 0.55 * TW, Y]; return [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u]; };
+      return { h: 44, svg: box(X, Y - 6, 0.55, 14, "#d35400") + box(X, Y - 20, 0.32, 16, "#f5b041", "#e59866") +
+        faceR(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#a9d6f5") + faceL(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#7fb3d5") +
+        [w(0.2), w(0.8), w2(0.25), w2(0.8)].map(([x, y]) => `<ellipse cx="${x}" cy="${y - 3}" rx="6" ry="7" fill="#222"/>`).join("") };
+    }
+    case "pc": return { h: 40, svg: box(X, Y, 0.8, 36, "#f7f7f2", "#27ae60") + windowsRow(X, Y, 0.8, 4, 12, 26, "#7fb3d5") +
+      faceL(X, Y, 0.8, 0.46, 0.54, 0, 20, "#6b4423") };
+    case "atelier": return { h: 84, svg: box(X, Y, 0.85, 36, "#d9b99b") +
+      faceL(X, Y, 0.85, 0.3, 0.7, 0, 26, "#6b4423") + faceL(X, Y, 0.85, 0.3, 0.7, 12, 14, "#4a2f17") +
+      faceR(X, Y, 0.85, 0.15, 0.4, 16, 28, "#9cc3dd") + faceR(X, Y, 0.85, 0.6, 0.85, 16, 28, "#9cc3dd") +
+      roof(X, Y, 0.85, 36, 24, "#8b4513") + box(X + 22, Y - 40, 0.09, 30, "#7a4a2a") +
+      `<g><circle class="smoke" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d2" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d3" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/></g>` };
+    case "presta": {
+      const E = [X + 0.38 * TW, Y];
+      return { h: 44, svg: box(X, Y, 0.38, 34, "#c8d0d8", "#6c7a89") + faceR(X, Y, 0.38, 0.2, 0.8, 14, 26, "#7fb3d5") +
+        `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#fff" stroke-width="6" stroke-linecap="round"/>` +
+        `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#d2452f" stroke-width="6" stroke-dasharray="7 7"/>` +
+        `<rect x="${E[0] - 2}" y="${E[1] - 16}" width="6" height="18" fill="#4a4a4a"/>` };
+    }
+  }
+  return { h: 30, svg: box(X, Y, 0.6, 30, "#ccc") };
+}
+
+function tower(d, lv, X, Y, pop) {
+  if (!lv) return `<polygon points="${P(Object.values(corners(X, Y, 0.24)))}" fill="rgba(42,33,24,0.12)" stroke="#2a2118" stroke-opacity="0.45" stroke-dasharray="4 3"/>`;
+  const col = DEFS[d].color, h = 10 + 12 * lv, r = 14 + 3 * lv;
+  let s = box(X, Y, 0.22, h, col) + roof(X, Y, 0.22, h, r, shade(col, -0.35));
+  if (lv >= 2) s += faceR(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118") + faceL(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118");
+  if (lv >= 3) s += `<line x1="${X}" y1="${Y - h - r}" x2="${X}" y2="${Y - h - r - 14}" stroke="#4a3520" stroke-width="2"/><polygon points="${P([[X, Y - h - r - 14], [X + 12, Y - h - r - 10], [X, Y - h - r - 6]])}" fill="#f0b429"/>`;
+  s += `<circle cx="${X + 16}" cy="${Y - h + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 16}" y="${Y - h + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+  return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+}
+
+function fire(X, Y) {
+  const f = (dx, sc, cls) => `<path class="flame ${cls}" d="M ${X + dx} ${Y} q ${-8 * sc} ${-10 * sc} 0 ${-26 * sc} q ${8 * sc} ${14 * sc} 0 ${26 * sc} z" fill="#ff8c1a"/>` +
+    `<path class="flame ${cls}" d="M ${X + dx} ${Y} q ${-4 * sc} ${-6 * sc} 0 ${-14 * sc} q ${4 * sc} ${8 * sc} 0 ${14 * sc} z" fill="#ffe14d"/>`;
+  return `<g>${f(-12, 1, "")}${f(4, 1.3, "b")}${f(16, 0.9, "")}` +
+    `<circle class="smoke" cx="${X}" cy="${Y - 30}" r="8" fill="#555"/><circle class="smoke d2" cx="${X + 6}" cy="${Y - 30}" r="8" fill="#555"/></g>`;
+}
+
+const PLOT = {};
+BUILDINGS.forEach((b, i) => { PLOT[b.id] = [1.5 + 3 * (i % 3), 1.5 + 3 * Math.floor(i / 3)]; });
+const SLOTS = [[1.08, 0.12], [0.12, 1.08]];
+function towerGrid(d) { const [gx, gy] = PLOT[DEFS[d].b], [ox, oy] = SLOTS[DEFS[d].slot]; return [gx + ox, gy + oy]; }
+function towerTop(d, lv) { const [X, Y] = iso(...towerGrid(d)); return [X, Y - (10 + 12 * Math.max(lv, 1)) - 10]; }
+
+function wall(lv, part) {
+  if (!lv) return "";
+  const a = 0.22, b = 8.78;
+  const pts = part === "back" ? [iso(a, b), iso(a, a), iso(b, a)] : [iso(a, b), iso(b, b), iso(b, a)];
+  const line = (dy, col, w, extra = "") => `<polyline points="${P(pts.map((p) => [p[0], p[1] - dy]))}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${extra}/>`;
+  let s = "";
+  if (lv === 1) {
+    s += line(0, "#5e3b17", 3) + line(7, "#8a5a2b", 3) + line(3.5, "#8a5a2b", 5, 'stroke-dasharray="3 12"');
+  } else {
+    const h = lv === 2 ? 9 : 15;
+    for (let y = 0; y < h; y += 2) s += line(y, "#7c838b", 10);
+    s += line(h, "#c3c8ce", 9) + line(h + 2, "#8d949c", 3, 'stroke-dasharray="6 6"');
+    if (lv === 3) {
+      const cs = part === "back" ? [[a, b], [a, a], [b, a]] : [[b, b]];
+      cs.forEach(([gx, gy]) => { const [X, Y] = iso(gx, gy); s += box(X, Y, 0.32, 36, "#9aa1a9") + roof(X, Y, 0.32, 36, 18, "#5e6670"); });
+    }
+  }
+  return s;
+}
+
+// Décor fixe : touffes d'herbe et arbres
+const TUFTS = (() => { let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; const t = []; for (let i = 0; i < 70; i++) t.push([0.3 + rnd() * 8.4, 0.3 + rnd() * 8.4]); return t; })();
+const TREES = [[0.35, 3], [0.35, 6.1], [3, 0.35], [6.1, 0.35], [8.6, 4.5], [4.5, 8.6], [2.9, 2.9], [6.05, 6.05]];
+function tree(X, Y, k) {
+  return `<ellipse cx="${X}" cy="${Y + 2}" rx="12" ry="5" fill="rgba(0,0,0,0.18)"/><rect x="${X - 2.5}" y="${Y - 14}" width="5" height="15" fill="#6b4423"/>` +
+    `<circle cx="${X}" cy="${Y - 22}" r="${12 + (k % 2) * 3}" fill="#3f8f3a" stroke="#2a5e26" stroke-width="1.5"/><circle cx="${X - 4}" cy="${Y - 26}" r="5" fill="#5cb24f"/>`;
+}
+
+function drawWorld(levels, o = {}) {
+  const fires = o.fires || new Set(), mini = !!o.mini, fw = levels.fw || 0;
+  const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
+  let s = "";
+  // île
+  s += `<polygon points="${P([c[3], c[2], up(c[2], -30), up(c[3], -30)])}" fill="#8b5e34"/>`;
+  s += `<polygon points="${P([c[2], c[1], up(c[1], -30), up(c[2], -30)])}" fill="#a8733f"/>`;
+  s += `<polygon points="${P([c[3], c[2], up(c[2], -8), up(c[3], -8)])}" fill="#5f8f34"/><polygon points="${P([c[2], c[1], up(c[1], -8), up(c[2], -8)])}" fill="#6ea03d"/>`;
+  s += `<polygon points="${P(c)}" fill="#86b94f"/>`;
+  // chemins
+  const road = (a1, a2, b1, b2) => `<polygon points="${P([iso(a1, b1), iso(a2, b1), iso(a2, b2), iso(a1, b2)])}" fill="#d9c08a" opacity="0.85"/>`;
+  [3, 6].forEach((v) => { s += road(v - 0.16, v + 0.16, 0.4, 8.6) + road(0.4, 8.6, v - 0.16, v + 0.16); });
+  if (!mini) TUFTS.forEach(([gx, gy]) => { const [X, Y] = iso(gx, gy); s += `<path d="M ${X - 3} ${Y} l 2 -5 l 1 5 l 2 -4 l 1 4" fill="none" stroke="#5f8f34" stroke-width="1.3"/>`; });
+  s += wall(fw, "back");
+  // parcelles
+  BUILDINGS.forEach((b) => {
+    const [X, Y] = iso(...PLOT[b.id]);
+    s += `<polygon points="${P(Object.values(corners(X, Y, 1.3)))}" fill="#79ab44" stroke="#6c9a3b"/>`;
+    if (!mini && o.sel === b.id) s += `<polygon class="sel-ring" points="${P(Object.values(corners(X, Y, 1.32)))}" fill="rgba(240,180,41,0.18)" stroke="#f0b429" stroke-width="3"/>`;
+  });
+  // objets triés par profondeur
+  const items = [];
+  TREES.forEach(([gx, gy], k) => { const [X, Y] = iso(gx, gy); items.push({ d: gx + gy, svg: tree(X, Y, k) }); });
+  BUILDINGS.forEach((b) => {
+    const [gx, gy] = PLOT[b.id], [X, Y] = iso(gx, gy), bd = drawBuilding(b.id, X, Y);
+    b._h = bd.h;
+    items.push({ d: gx + gy, svg: `<g data-b="${b.id}" ${mini ? "" : `tabindex="0" role="button" aria-label="${esc(b.name)}"`}><g class="bld" id="${mini ? "" : "bld-" + b.id}"><ellipse cx="${X}" cy="${Y + 6}" rx="${TW * 0.7}" ry="${TH * 0.5}" fill="rgba(0,0,0,0.12)"/>${bd.svg}</g>${fires.has(b.id) ? fire(X, Y - bd.h * 0.55) : ""}</g>` });
+  });
+  DEF_IDS.forEach((d) => {
+    const [gx, gy] = towerGrid(d), [X, Y] = iso(gx, gy);
+    const pop = !mini && justBuilt && justBuilt.d === d && Date.now() - justBuilt.at < 900;
+    items.push({ d: gx + gy + 0.01, svg: `<g data-b="${DEFS[d].b}">${tower(d, levels[d] || 0, X, Y, pop)}</g>` });
+  });
+  items.sort((a, b) => a.d - b.d).forEach((it) => { s += it.svg; });
+  s += wall(fw, "front");
+  // étiquettes
+  if (!mini) {
+    BUILDINGS.forEach((b) => {
+      const [X, Y] = iso(...PLOT[b.id]), ty = Y - b._h - 14, ly = Y + 44;
+      const isSel = o.sel === b.id;
+      s += `<text x="${X}" y="${ly}" text-anchor="middle" font-size="14" fill="${isSel ? "#f0b429" : "#fff"}" stroke="#2a2118" stroke-width="3.5" paint-order="stroke" pointer-events="none">${esc(b.name)}</text>`;
+      const badge = o.badges && o.badges[b.id];
+      if (badge) s += `<g class="bounce" pointer-events="none"><circle cx="${X}" cy="${ty - 22}" r="11" fill="${badge.color}" stroke="#fff" stroke-width="2"/><text x="${X}" y="${ty - 17}" text-anchor="middle" font-size="13" fill="#fff">${badge.text}</text></g>`;
+    });
+  }
+  return s;
+}
+
+// ================= écriture =================
 let chain = Promise.resolve();
 function queue(fn) {
   if (!db) return;
@@ -427,33 +682,66 @@ function queue(fn) {
     ? "Vous n'avez pas les droits d'écriture : demandez un accès Contributeur à l'organisateur."
     : "Enregistrement impossible pour l'instant, réessayez dans un instant."));
 }
-function saveTable(tid) {
-  const body = Object.assign(tbl(tid), { updatedAt: new Date().toISOString() });
-  queue(() => db.collection("tables").doc(tid).set(clone(body)));
-}
+function saveTable(tid) { const body = Object.assign(tbl(tid), { updatedAt: new Date().toISOString() }); queue(() => db.collection("tables").doc(tid).set(clone(body))); }
 function saveState() { const body = clone(state); queue(() => db.doc("game/state").set(body)); }
 const timers = {};
 function later(k, fn) { clearTimeout(timers[k]); timers[k] = setTimeout(() => { delete timers[k]; fn(); }, 700); }
 function mine() {
   if (!tables[myTable]) tables[myTable] = { name: "", flags: {}, levels: {} };
-  const t = tables[myTable];
-  t.flags = t.flags || {}; t.levels = t.levels || {};
-  return t;
+  const t = tables[myTable]; t.flags = t.flags || {}; t.levels = t.levels || {}; return t;
 }
 function setStatus(m) { $("status").textContent = m; }
 
-// ---------------- rendu : bandeau ----------------
+// ================= icônes =================
+const ICON = {
+  gold: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#f0b429" stroke="#b7830e" stroke-width="3"/><circle cx="16" cy="16" r="7" fill="none" stroke="#b7830e" stroke-width="2"/></svg>`,
+  troph: `<svg viewBox="0 0 32 32"><path d="M9 5h14v7a7 7 0 0 1-14 0z" fill="#f0b429" stroke="#b7830e" stroke-width="2"/><path d="M9 7H4a5 5 0 0 0 6 7M23 7h5a5 5 0 0 1-6 7" fill="none" stroke="#b7830e" stroke-width="2"/><rect x="13" y="19" width="6" height="5" fill="#b7830e"/><rect x="9" y="24" width="14" height="4" rx="1" fill="#8a5a2b"/></svg>`,
+  hq: `<svg viewBox="0 0 32 32"><path d="M4 15 16 5l12 10" fill="#c0392b" stroke="#7b241c" stroke-width="2"/><rect x="7" y="14" width="18" height="13" fill="#efe0bf" stroke="#7b5a3a" stroke-width="2"/><rect x="14" y="19" width="5" height="8" fill="#6b4423"/></svg>`,
+  timer: `<svg viewBox="0 0 32 32"><circle cx="16" cy="18" r="11" fill="#fff" stroke="#2c6ea8" stroke-width="3"/><path d="M16 18V11M16 18l5 3" stroke="#2a2118" stroke-width="2.5" stroke-linecap="round"/><rect x="12" y="2" width="8" height="4" rx="1" fill="#2c6ea8"/></svg>`,
+};
+const STAR = (on, cls = "") => `<svg viewBox="0 0 24 24" class="${cls}"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.4 7L12 17.6 5.8 21.1l1.4-7L2 9.3l7-.8z" fill="${on ? "#f0b429" : "#d9ccb4"}" stroke="${on ? "#b7830e" : "#b3a58c"}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+
+// ================= bandeau & HUD =================
 function renderBanner() {
   const s = state, n = s.played.length;
   let html;
-  if (s.phase === "reco") html = `<b>Phase 1 · Trouvez les failles</b><span>Ouvrez chaque bâtiment et marquez ce qui vous semble dangereux. Chaque faille trouvée rapporte ${s.cfg.bonus} € de budget, chaque fausse alerte en coûte autant.</span>`;
-  else if (s.phase === "build") html = `<b>Construction${n ? ` · après ${n} raid${n > 1 ? "s" : ""}` : ""}</b><span>Renforcez votre base avant le prochain raid. Le niveau du QG cyber limite le niveau des autres défenses.</span>`;
-  else if (s.phase === "raid") html = `<b>Raid en cours · ${esc(RAID_BY_ID[s.current]?.name || "")}</b><span>La construction est bloquée pendant l'attaque.</span>`;
-  else html = `<b>Fin de la partie</b><span>Rendez-vous dans l'onglet Classement pour le débrief.</span>`;
+  if (s.phase === "reco") html = `<b>Phase 1 · Trouvez les failles</b><span>Touchez chaque bâtiment et marquez ce qui vous semble dangereux. Faille trouvée : +${s.cfg.bonus} €. Fausse alerte : −${s.cfg.bonus} €.</span>`;
+  else if (s.phase === "build") html = `<b>Construction${n ? ` · ${n} raid${n > 1 ? "s" : ""} subi${n > 1 ? "s" : ""}` : ""}</b><span>Renforcez votre base avant le prochain raid. Le QG cyber limite le niveau des autres défenses.</span>`;
+  else if (s.phase === "raid") html = `<b>Alerte · ${esc(RAID_BY_ID[s.current]?.name || "")}</b><span>Votre base est attaquée. La construction est bloquée.</span>`;
+  else html = `<b>Fin de la partie</b><span>Direction l'écran géant pour le classement et le débrief.</span>`;
   $("banner").innerHTML = html;
 }
+let lastGold = null, flyOk = 0;
+function renderHUD() {
+  const b = budget(myTable), t = tbl(myTable);
+  const g = $("r-gold");
+  g.innerHTML = `${ICON.gold}<span>${b} €</span>`;
+  g.classList.toggle("neg", b < 0);
+  if (lastGold !== null && lastGold !== b && Date.now() - flyOk < 1500) {
+    const f = document.createElement("span");
+    f.className = "fly" + (b > lastGold ? " plus" : ""); f.textContent = (b > lastGold ? "+" : "−") + Math.abs(b - lastGold) + " €";
+    g.appendChild(f);
+  }
+  lastGold = b;
+  $("r-troph").innerHTML = `${ICON.troph}<span>${trophies(myTable)}</span>`;
+  $("r-hq").innerHTML = `${ICON.hq}<span>QG niv. ${t.levels.gouv || 0}</span>`;
+  renderTimer();
+}
+let alarmed = null;
+function renderTimer() {
+  const el = $("r-timer"), tm = state.timer;
+  if (!tm) { el.hidden = true; if ($("giant-timer")) $("giant-timer").hidden = true; return; }
+  const left = Math.max(0, Math.round((tm.end - Date.now()) / 1000));
+  el.hidden = false;
+  el.classList.toggle("late", left === 0);
+  el.innerHTML = `${ICON.timer}<span>${left === 0 ? "Temps écoulé !" : `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</span>`;
+  if (left === 0 && alarmed !== tm.end) { alarmed = tm.end; SFX.alarm(); }
+  const g = $("giant-timer");
+  if (g) { g.innerHTML = el.innerHTML; g.className = el.className; g.hidden = el.hidden; }
+}
+setInterval(renderTimer, 500);
 
-// ---------------- rendu : ma base ----------------
+// ================= ma base =================
 function renderTableSelect() {
   const sel = $("sel-table");
   if (Number(myTable.slice(1)) > state.cfg.tables) myTable = "t1";
@@ -466,57 +754,52 @@ function renderTableSelect() {
   sel.value = myTable;
 }
 $("sel-table").addEventListener("change", (e) => {
-  myTable = e.target.value; store.set("clash-table", myTable); renderBase(true);
+  myTable = e.target.value; store.set("clash-table", myTable);
+  lastGold = null; $("result").hidden = true; renderBase(true);
 });
 $("in-name").addEventListener("input", (e) => { mine().name = e.target.value; later("n", () => saveTable(myTable)); });
 
-function renderRes() {
-  const b = budget(myTable), t = tbl(myTable);
-  $("r-gold").querySelector("span").textContent = b + " €";
-  $("r-gold").classList.toggle("neg", b < 0);
-  $("r-troph").querySelector("span").textContent = trophies(myTable) + " trophées";
-  $("r-hq").querySelector("span").textContent = "niveau " + (t.levels.gouv || 0);
-}
-
-function renderVillage() {
-  const t = tbl(myTable);
-  const walls = $("walls");
-  const fw = t.levels.fw || 0;
-  walls.dataset.lv = String(fw);
-  $("wall-cap").textContent = fw ? `Remparts réseau niveau ${fw}` : "Aucun rempart réseau";
-  const raid = state.phase === "raid" ? RAID_BY_ID[state.current] : null;
-  walls.innerHTML = "";
+function badges() {
+  const t = tbl(myTable), out = {};
   BUILDINGS.forEach((b) => {
-    const el = document.createElement("button");
-    el.className = "tile" + (raid && raid.hit.includes(b.id) && state.step > 0 ? " hit" : "");
-    el.style.setProperty("--roof", b.roof);
-    el.setAttribute("aria-pressed", String(selected === b.id));
-    const chips = DEF_IDS.filter((d) => DEFS[d].b === b.id)
-      .map((d) => { const l = t.levels[d] || 0; return `<span class="chip lv${l}">${esc(DEFS[d].name)} ${l}</span>`; }).join("");
-    const nFlags = (OBS[b.id] || []).filter((o) => t.flags[o.id]).length;
-    el.innerHTML = `<span class="roof"></span><span class="nm">${esc(b.name)}</span><span class="chips">${chips}</span>${nFlags ? `<span class="flag" title="Failles marquées">${nFlags}</span>` : ""}`;
-    el.onclick = () => { selected = b.id; store.set("clash-building", selected); renderVillage(); renderPanel(); };
-    walls.appendChild(el);
+    if (state.phase === "reco") {
+      const n = (OBS[b.id] || []).filter((o) => t.flags[o.id]).length;
+      if (n) out[b.id] = { color: "#d2452f", text: String(n) };
+    } else if (state.phase === "build") {
+      if (DEF_IDS.some((d) => DEFS[d].b === b.id && canUpgrade(myTable, d))) out[b.id] = { color: "#3ca63f", text: "▲" };
+    }
   });
+  return out;
 }
+function renderVillage() {
+  const levels = tbl(myTable).levels;
+  $("layer-world").innerHTML = drawWorld(levels, { sel: selected, fires: firesFor(levels), badges: badges() });
+}
+function selectBuilding(id) {
+  if (!B_BY_ID[id]) return;
+  selected = id; store.set("clash-building", selected); renderVillage(); renderPanel();
+}
+$("layer-world").addEventListener("click", (e) => { const g = e.target.closest("[data-b]"); if (g) selectBuilding(g.dataset.b); });
+$("layer-world").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const g = e.target.closest("[data-b]"); if (g) { e.preventDefault(); selectBuilding(g.dataset.b); setTimeout(() => $("layer-world").querySelector(`[data-b="${g.dataset.b}"][tabindex]`)?.focus(), 0); }
+});
 
+function towerIcon(d, lv) {
+  return `<svg class="icon" viewBox="-34 -78 68 88">${tower(d, Math.max(1, lv), 0, 0, false).replace(/<circle[^]*$/, "</g>")}</svg>`;
+}
 function renderPanel() {
   const p = $("panel");
   if (state.phase === "raid" && RAID_BY_ID[state.current]) { p.innerHTML = raidHTML(RAID_BY_ID[state.current], tbl(myTable).levels, state.step); return; }
-  const b = BUILDINGS.find((x) => x.id === selected) || BUILDINGS[0];
-  const t = tbl(myTable);
+  const b = B_BY_ID[selected] || BUILDINGS[0], t = tbl(myTable);
   let html = `<h2>${esc(b.name)}</h2>`;
-
-  // observations
   const obs = OBS[b.id] || [];
   if (state.phase === "reco") {
     html += `<p class="sub">Inspection : touchez les constats qui sont des failles.</p><div class="obs">`;
-    obs.forEach((o) => {
-      html += `<button data-obs="${o.id}" aria-pressed="${!!t.flags[o.id]}"><span class="box">${t.flags[o.id] ? "!" : ""}</span><span>${esc(o.t)}</span></button>`;
-    });
+    obs.forEach((o) => { html += `<button data-obs="${o.id}" aria-pressed="${!!t.flags[o.id]}"><span class="box">${t.flags[o.id] ? "!" : ""}</span><span>${esc(o.t)}</span></button>`; });
     html += `</div>`;
   } else {
-    html += `<p class="sub">Constats de l'inspection</p><div class="obs">`;
+    html += `<details${state.phase === "build" && !state.played.length ? " open" : ""}><summary class="sub" style="cursor:pointer">Constats de l'inspection</summary><div class="obs" style="margin-top:8px">`;
     obs.forEach((o) => {
       const flagged = !!t.flags[o.id];
       let v;
@@ -526,30 +809,25 @@ function renderPanel() {
       else v = `<span class="verdict good">Bonne pratique</span>`;
       html += `<button disabled aria-pressed="${flagged}"><span class="box">${flagged ? "!" : ""}</span><span>${esc(o.t)}${v}</span></button>`;
     });
-    html += `</div>`;
+    html += `</div></details>`;
   }
-
-  // défenses
   const defs = DEF_IDS.filter((d) => DEFS[d].b === b.id);
-  if (!defs.length) {
-    html += `<p class="sub">Aucune défense ne se construit ici. L'atelier est protégé par les Remparts réseau (niveau 3 : réseau séparé) et la Forge des mises à jour (niveau 3 : systèmes obsolètes isolés).</p>`;
-  }
+  if (!defs.length) html += `<p class="sub">Aucune défense ne se construit ici. L'atelier est protégé par les Remparts réseau (niveau 3 : réseau séparé) et la Forge des mises à jour (niveau 3 : systèmes obsolètes isolés).</p>`;
   defs.forEach((d) => {
-    const l = t.levels[d] || 0, def = DEFS[d];
-    const next = def.lv[l];
+    const l = t.levels[d] || 0, def = DEFS[d], next = def.lv[l];
     const c = cap(d, t.levels), bud = budget(myTable), min = minLevel(myTable, d);
     let why = "";
-    const canBuild = state.phase === "build" && next && l < c && next[0] <= bud;
-    if (state.phase === "reco") why = "Construction après la phase d'inspection.";
+    if (state.phase === "reco") why = "Construction après l'inspection.";
     else if (state.phase !== "build") why = "";
-    else if (!next) why = "Niveau maximum atteint.";
+    else if (!next) why = "Niveau maximum !";
     else if (l >= c) why = `Montez le QG cyber au niveau ${l} pour débloquer.`;
     else if (next[0] > bud) why = `Il manque ${next[0] - bud} €.`;
-    html += `<div class="def"><div class="def-head"><h3>${esc(def.name)}</h3><span class="pips">${[1, 2, 3].map((i) => `<span class="${i <= l ? "on" : ""}"></span>`).join("")}</span></div>
+    html += `<div class="def">${towerIcon(d, l)}
+      <div class="def-head"><h3>${esc(def.name)}</h3><span class="lvstars" aria-label="Niveau ${l} sur 3">${[1, 2, 3].map((i) => STAR(i <= l)).join("")}</span></div>
       <ul class="lv-list">${def.lv.map(([cost, txt], i) => `<li class="${i < l ? "done" : ""}"><b>${cost} €</b><span>Niv. ${i + 1} · ${esc(txt)}</span></li>`).join("")}</ul>
       <div class="actions">
-        ${next ? `<button class="btn gold" data-up="${d}" ${canBuild ? "" : "disabled"}>Améliorer · ${next[0]} €</button>` : ""}
-        ${state.phase === "build" && l > min ? `<button class="btn plain" data-down="${d}">Annuler le niveau ${l}</button>` : ""}
+        ${next ? `<button class="btn green" data-up="${d}" ${canUpgrade(myTable, d) ? "" : "disabled"}>${l ? "Améliorer" : "Construire"} · ${next[0]} €</button>` : ""}
+        ${state.phase === "build" && l > min ? `<button class="btn plain" data-down="${d}">Annuler</button>` : ""}
         ${why ? `<span class="why">${why}</span>` : ""}
       </div></div>`;
   });
@@ -559,97 +837,194 @@ function renderPanel() {
     if (state.phase !== "reco") return;
     const m = mine(), id = btn.dataset.obs;
     if (m.flags[id]) delete m.flags[id]; else m.flags[id] = true;
-    renderVillage(); renderPanel(); saveTable(myTable);
+    SFX.flag(); flyOk = Date.now(); renderVillage(); renderPanel(); saveTable(myTable);
   });
   p.querySelectorAll("[data-up]").forEach((btn) => btn.onclick = () => {
-    const d = btn.dataset.up, m = mine(), l = m.levels[d] || 0, next = DEFS[d].lv[l];
-    if (state.phase !== "build" || !next || l >= cap(d, m.levels) || next[0] > budget(myTable)) return;
-    m.levels[d] = l + 1;
+    const d = btn.dataset.up;
+    if (!canUpgrade(myTable, d)) return;
+    const m = mine(); m.levels[d] = (m.levels[d] || 0) + 1;
+    justBuilt = { d, at: Date.now() }; flyOk = Date.now(); SFX.build();
     renderBase(false); saveTable(myTable);
   });
   p.querySelectorAll("[data-down]").forEach((btn) => btn.onclick = () => {
     const d = btn.dataset.down, m = mine(), l = m.levels[d] || 0;
     if (state.phase !== "build" || l <= minLevel(myTable, d)) return;
-    // démolir le QG ne doit pas laisser des défenses au-dessus du plafond
-    if (d === "gouv" && DEF_IDS.some((x) => x !== "gouv" && (m.levels[x] || 0) > l)) {
-      setStatus("Baissez d'abord les défenses qui dépassent le niveau autorisé par le QG."); return;
-    }
-    m.levels[d] = l - 1;
+    if (d === "gouv" && DEF_IDS.some((x) => x !== "gouv" && (m.levels[x] || 0) > l)) { setStatus("Baissez d'abord les défenses qui dépassent le niveau autorisé par le QG."); return; }
+    m.levels[d] = l - 1; flyOk = Date.now(); SFX.coin();
     renderBase(false); saveTable(myTable);
   });
 }
-
-function starsHTML(n) { return `<span class="stars" aria-label="${n} étoile${n > 1 ? "s" : ""} sur 3">${[0, 1, 2].map((i) => `<span class="${i < n ? "on" : ""}">★</span>`).join("")}</span>`; }
 
 function raidHTML(raid, levels, step) {
   const r = resolve(raid, levels);
   let html = `<div class="raid"><h2>${esc(raid.name)}</h2><p class="intro">${esc(raid.intro)}</p>`;
   raid.steps.forEach(([txt, blockers], i) => {
-    const shown = i < step;
-    let cls = "stage", line = "";
-    const alt = blockers.length ? "Bloqué par : " + blockers.map((b) => defLabel(...b)).join(" ou ") : "Rien ne peut empêcher cette étape.";
-    if (!shown) { cls += " off"; line = `<span class="hint">En attente du maître du jeu…</span>`; }
+    const shown = i < step && !pendingFire.has(i);
+    let cls = "step", line = "";
+    const alt = blockers.length ? "Parade : " + blockers.map((b) => defLabel(...b)).join(" ou ") : "Aucune parade possible à cette étape.";
+    if (!shown) { cls += " off"; line = `<span class="hint">${i < step ? "L'attaque avance…" : "En attente du maître du jeu…"}</span>`; }
     else if (r.blockedAt >= 0 && i > r.blockedAt) { cls += " off"; line = `<span class="res-line">L'attaque s'est arrêtée avant.</span>`; }
-    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">Bloqué par ${esc(r.by.map((b) => defLabel(...b)).join(" et "))}</span>`; }
+    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">Bloqué par ${esc(r.by.map((b) => defLabel(...b)).join(" et "))} !</span>`; }
     else { cls += " win"; line = `<span class="res-line">L'attaquant passe.</span><span class="hint">${esc(alt)}</span>`; }
     html += `<div class="${cls}"><span class="k">Étape ${i + 1}</span><span>${esc(txt)}</span>${line}</div>`;
   });
-  if (step >= 3) {
-    const loss = state.cfg.loss[r.stars];
-    html += `<div class="outcome">${starsHTML(r.stars)}<span>${r.stars === 0 ? "Attaque repoussée" : r.stars === 3 ? "Base détruite" : "Base touchée"} · +${(3 - r.stars) * 10} trophées · ${loss ? "−" + loss + " € de pertes" : "aucune perte"}</span></div>`;
-  }
   return html + `</div>`;
+}
+
+function showResult(raid, levels) {
+  const r = resolve(raid, levels), loss = state.cfg.loss[r.stars];
+  const titles = ["Défense réussie !", "Base touchée", "Base très endommagée", "Base détruite"];
+  const el = $("result");
+  el.innerHTML = `<div class="card"><span class="why">${esc(raid.name)} · étoiles gagnées par l'attaquant</span>
+    <h2 class="${r.stars === 0 ? "win" : "lose"}">${titles[r.stars]}</h2>
+    <div class="big-stars">${[0, 1, 2].map((i) => i < r.stars ? STAR(true, "on").replace("<svg", `<svg style="animation-delay:${0.25 + i * 0.3}s"`) : STAR(false)).join("")}</div>
+    <p>Dégâts : ${Math.round(r.stars / 3 * 100)} % · +${(3 - r.stars) * 10} trophées · ${loss ? "−" + loss + " € de pertes" : "aucune perte"}</p>
+    ${r.stars ? `<p class="why">Il fallait : ${esc(raid.steps.slice(0, r.stars).map((s) => s[1].length ? s[1].map((b) => defLabel(...b)).join(" ou ") : "").filter(Boolean).join(" ; ") || "limiter les étapes suivantes")}</p>` : ""}
+    <button class="btn gold" id="btn-result">Continuer</button></div>`;
+  el.hidden = false;
+  $("btn-result").onclick = () => { el.hidden = true; };
+  (r.stars === 0 ? SFX.win : SFX.lose)();
+}
+
+// ---------- animation des raids ----------
+let animChain = Promise.resolve();
+function unitsSVG() {
+  const u = (dx, dy) => `<g transform="translate(${dx} ${dy})"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-5" y="-11" width="10" height="13" rx="4" fill="#2a2118"/><circle cx="0" cy="-14" r="5" fill="#2a2118"/><circle cx="-1.8" cy="-14" r="1.3" fill="#ff4d4d"/><circle cx="1.8" cy="-14" r="1.3" fill="#ff4d4d"/></g></g>`;
+  return u(0, 0) + u(-14, 6) + u(12, 7) + u(-2, 14);
+}
+function moveEl(el, from, to, ms) {
+  if (REDUCED) { el.setAttribute("transform", `translate(${to[0]} ${to[1]})`); return Promise.resolve(); }
+  const a = el.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, fill: "forwards", easing: "linear" });
+  return a.finished.catch(() => {});
+}
+function floatText(fx, x, y, txt, col) {
+  const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle");
+  t.setAttribute("font-size", "22"); t.setAttribute("fill", col); t.setAttribute("stroke", "#fff"); t.setAttribute("stroke-width", "4"); t.setAttribute("paint-order", "stroke");
+  t.textContent = txt; fx.appendChild(t);
+  if (!REDUCED) t.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-40px)", opacity: 0 }], { duration: 1600, fill: "forwards" });
+  setTimeout(() => t.remove(), 1700);
+}
+async function playStep(raid, i, levels) {
+  const fx = $("layer-fx"), r = resolve(raid, levels);
+  const [tgx, tgy] = PLOT[raid.steps[i][2]];
+  const from = i % 2 ? iso(tgx, 10.4) : iso(10.4, tgy);
+  const to = i % 2 ? iso(tgx - 0.2, tgy + 1.05) : iso(tgx + 1.05, tgy - 0.2);
+  const blocked = r.blockedAt === i;
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.innerHTML = unitsSVG(); fx.appendChild(g);
+  SFX.march();
+  const end = blocked ? [from[0] + (to[0] - from[0]) * 0.6, from[1] + (to[1] - from[1]) * 0.6] : to;
+  await moveEl(g, from, end, 1500);
+  if (blocked) {
+    const [d, lv] = r.by[0], [tx, ty] = towerTop(d, levels[d] || lv);
+    const beam = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    beam.innerHTML = `<line x1="${tx}" y1="${ty}" x2="${end[0]}" y2="${end[1] - 8}" stroke="#7df9ff" stroke-width="6" stroke-linecap="round" opacity="0.9"/><line x1="${tx}" y1="${ty}" x2="${end[0]}" y2="${end[1] - 8}" stroke="#fff" stroke-width="2"/><circle cx="${end[0]}" cy="${end[1] - 6}" r="26" fill="none" stroke="#7df9ff" stroke-width="4"/>`;
+    fx.appendChild(beam);
+    SFX.block();
+    floatText(fx, end[0], end[1] - 30, "Bloqué !", "#2f8f46");
+    if (!REDUCED) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
+    await sleep(700); beam.remove();
+  } else {
+    SFX.hit();
+    const bl = $("bld-" + raid.steps[i][2]);
+    if (bl) bl.classList.add("hitflash");
+    floatText(fx, to[0], to[1] - 60, "Touché !", "#d2452f");
+    await sleep(900);
+    if (!REDUCED) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+    await sleep(400);
+  }
+  g.remove();
+}
+function queueRaidAnim(raid, fromStep, toStep, levels) {
+  const r = resolve(raid, levels);
+  for (let i = fromStep; i < toStep; i++) pendingFire.add(i);
+  renderVillage(); renderPanel();
+  animChain = animChain.then(async () => {
+    for (let i = fromStep; i < toStep; i++) {
+      if (state.current !== raid.id || myTable !== seen.table) break;
+      const skip = r.blockedAt >= 0 && i > r.blockedAt;
+      if (!skip) await playStep(raid, i, levels);
+      pendingFire.delete(i);
+      renderVillage(); renderPanel();
+    }
+    pendingFire.clear();
+    if (toStep >= 3 && state.current === raid.id && resultShownFor !== raid.id + myTable) {
+      resultShownFor = raid.id + myTable; showResult(raid, levels);
+    }
+  });
+}
+function checkRaidProgress() {
+  const cur = state.phase === "raid" ? state.current : null;
+  if (!cur) { seen = { raid: null, step: 0, table: myTable }; pendingFire.clear(); return; }
+  const raid = RAID_BY_ID[cur];
+  if (seen.raid === cur && seen.table === myTable && state.step > seen.step) {
+    queueRaidAnim(raid, seen.step, state.step, clone(tbl(myTable).levels));
+  } else if (seen.raid !== cur || seen.table !== myTable) {
+    resultShownFor = null; $("result").hidden = true;
+  }
+  seen = { raid: cur, step: state.step, table: myTable };
 }
 
 function renderBase(sync) {
   renderTableSelect();
   const n = $("in-name");
   if (sync || document.activeElement !== n) n.value = tbl(myTable).name;
-  renderRes(); renderVillage(); renderPanel();
+  renderHUD(); renderVillage(); renderPanel();
 }
 
-// ---------------- rendu : classement ----------------
-function tableIds() { return Array.from({ length: state.cfg.tables }, (_, i) => "t" + (i + 1)); }
-function renderRank() {
-  const ids = tableIds();
-  const rows = ids.map((id) => ({ id, t: tbl(id), tr: trophies(id), b: budget(id), r: reco(tbl(id).flags) }))
-    .sort((a, b) => b.tr - a.tr || b.b - a.b);
+// ================= écran géant =================
+function renderGiant() {
+  const ids = tableIds(), raid = state.phase === "raid" ? RAID_BY_ID[state.current] : null;
+  let html = `<div class="giant-head"><h2>${raid ? esc(raid.name) + " · étape " + Math.min(state.step, 3) + "/3" : state.phase === "reco" ? "Inspection en cours" : state.phase === "build" ? "Construction en cours" : "Partie terminée"}</h2><span class="pill" id="giant-timer" hidden></span></div>`;
+  html += `<div class="minis">`;
+  ids.forEach((id) => {
+    const t = tbl(id), lv = t.levels;
+    let steps = "";
+    if (raid) {
+      const r = resolve(raid, lv);
+      steps = `<div class="steps">${[0, 1, 2].map((i) => i >= state.step ? "<i></i>" : r.blockedAt >= 0 && i >= r.blockedAt ? `<i class="${i === r.blockedAt ? "block" : ""}"></i>` : `<i class="win"></i>`).join("")}</div>`;
+    }
+    const fires = new Set();
+    if (raid) { const r = resolve(raid, lv); for (let i = 0; i < state.step; i++) { if (r.blockedAt >= 0 && i >= r.blockedAt) break; fires.add(raid.steps[i][2]); } }
+    html += `<div class="mini"><div class="top"><b>Table ${id.slice(1)}${t.name ? " · " + esc(t.name) : ""}</b><span>${trophies(id)} trophées</span></div>
+      <svg class="world" viewBox="-395 -95 790 510" aria-hidden="true">${drawWorld(lv, { mini: true, fires })}</svg>${steps}</div>`;
+  });
+  html += `</div>`;
+
+  const rows = ids.map((id) => ({ id, t: tbl(id), tr: trophies(id), b: budget(id), r: reco(tbl(id).flags) })).sort((a, b) => b.tr - a.tr || b.b - a.b);
   const showReco = state.phase !== "reco";
-  let html = `<div class="board-box"><table class="rank"><thead><tr><th>#</th><th class="l">Table</th><th>Trophées</th>`;
+  html += `<div class="board-box"><table class="rank"><thead><tr><th>#</th><th class="l">Table</th><th>Trophées</th>`;
   state.played.forEach((rid) => { html += `<th>${esc(RAID_BY_ID[rid].name.replace("Raid ", ""))}</th>`; });
   html += `<th>Budget</th><th>${showReco ? "Failles trouvées" : "Failles marquées"}</th></tr></thead><tbody>`;
   rows.forEach((x, i) => {
     html += `<tr><td class="pos">${i + 1}</td><td class="l">Table ${x.id.slice(1)}${x.t.name ? " · " + esc(x.t.name) : ""}</td><td>${x.tr}</td>`;
     state.played.forEach((rid) => {
-      const res = state.results[rid]?.[x.id];
-      const s = res ? res.s : 3;
+      const res = state.results[rid]?.[x.id], s = res ? res.s : 3;
       html += `<td class="mini-stars" title="${s} étoile(s) pour l'attaquant">${s === 0 ? '<span class="z">repoussé</span>' : "★".repeat(s)}</td>`;
     });
     html += `<td>${x.b} €</td><td>${showReco ? `${x.r.good} / ${x.r.total}${x.r.bad ? ` · ${x.r.bad} fausse${x.r.bad > 1 ? "s" : ""} alerte${x.r.bad > 1 ? "s" : ""}` : ""}` : Object.keys(x.t.flags).length}</td></tr>`;
   });
-  html += `</tbody></table></div>`;
-  html += `<p class="status">Étoiles gagnées par l'attaquant : 0 = attaque repoussée, 3 = base détruite. Chaque étoile évitée rapporte 10 trophées.</p>`;
+  html += `</tbody></table></div><p class="status">Étoiles gagnées par l'attaquant : 0 = attaque repoussée, 3 = base détruite. Chaque étoile évitée rapporte 10 trophées.</p>`;
 
-  if (!state.played.length) {
-    html += `<div class="empty">Le débrief des raids apparaîtra ici après le premier raid.</div>`;
-  } else {
-    html += `<h2 style="margin-top:22px">Débrief des raids</h2><div class="debrief">`;
+  if (state.played.length) {
+    html += `<h2 style="margin-top:18px">Débrief des raids</h2><div class="debrief">`;
     state.played.forEach((rid) => {
-      const raid = RAID_BY_ID[rid], res = state.results[rid] || {};
-      const blockedAt = [0, 0, 0];
+      const raid2 = RAID_BY_ID[rid], res = state.results[rid] || {}, blockedAt = [0, 0, 0];
       ids.forEach((id) => { const s = res[id] ? res[id].s : 3; if (s < 3) blockedAt[s]++; });
-      html += `<article class="panel"><h3>${esc(raid.name)}</h3><p class="sub">${esc(raid.intro)}</p><ol>`;
-      raid.steps.forEach(([txt, bl], i) => {
+      html += `<article class="panel"><h3>${esc(raid2.name)}</h3><p class="sub">${esc(raid2.intro)}</p><ol>`;
+      raid2.steps.forEach(([txt, bl], i) => {
         html += `<li>${esc(txt)}<br><span class="why">${bl.length ? "Parade : " + esc(bl.map((b) => defLabel(...b)).join(" ou ")) : "Aucune parade : il faut limiter la suite."}</span>${blockedAt[i] ? ` <span class="cnt">· stoppé ici par ${blockedAt[i]} table${blockedAt[i] > 1 ? "s" : ""}</span>` : ""}</li>`;
       });
       html += `</ol></article>`;
     });
     html += `</div>`;
   }
-  $("rank-body").innerHTML = html;
+  $("giant-body").innerHTML = html;
+  renderTimer();
 }
 
-// ---------------- rendu : maître du jeu ----------------
+// ================= maître du jeu =================
 function renderMJ() {
   const s = state, box = $("mj-body");
   let html = `<div class="panel"><h2>Déroulé de la partie</h2>`;
@@ -659,23 +1034,27 @@ function renderMJ() {
       <div class="actions"><button class="btn gold" id="mj-reveal">Révéler les failles et ouvrir la construction</button></div>`;
   } else if (s.phase === "raid") {
     const raid = RAID_BY_ID[s.current];
-    html += `<p class="sub">${esc(raid.name)} · étape ${Math.min(s.step, 3)} sur 3 révélée.</p><div class="actions">
-      ${s.step < 3 ? `<button class="btn red" id="mj-step">Révéler l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>`;
+    html += `<p class="sub">${esc(raid.name)} · étape ${Math.min(s.step, 3)} sur 3 révélée. Chaque clic fait avancer l'attaque sur toutes les bases.</p><div class="actions">
+      ${s.step < 3 ? `<button class="btn red" id="mj-step">Lancer l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>`;
   } else if (s.phase === "build") {
-    html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il est joué contre toutes les bases en même temps.</p><div class="raid-pick">`;
+    html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il frappe toutes les bases en même temps.</p><div class="raid-pick">`;
     RAIDS.forEach((r) => {
       const done = s.played.includes(r.id);
       html += `<div class="it ${done ? "done" : ""}"><div class="txt"><b>${esc(r.name)}</b><div>${esc(r.intro)}</div></div>
-        ${done ? `<span class="why">Déjà joué</span>` : `<button class="btn red" data-launch="${r.id}">Lancer</button>`}</div>`;
+        ${done ? `<span class="why">Déjà joué</span>` : `<button class="btn red" data-launch="${r.id}">Lancer le raid</button>`}</div>`;
     });
     html += `</div><div class="actions" style="margin-top:6px"><button class="btn plain" id="mj-end">Terminer la partie</button></div>`;
   } else {
-    html += `<p class="sub">Partie terminée après ${s.played.length} raid${s.played.length > 1 ? "s" : ""}. Le classement et le débrief sont prêts.</p>
+    html += `<p class="sub">Partie terminée après ${s.played.length} raid${s.played.length > 1 ? "s" : ""}. Le classement et le débrief sont sur l'écran géant.</p>
       <div class="actions"><button class="btn plain" id="mj-reopen">Rouvrir la construction</button></div>`;
   }
   html += `</div>`;
 
-  html += `<div class="panel"><h2>Réglages</h2><p class="sub">Modifiables à tout moment. Les budgets se recalculent pour toutes les tables.</p><div class="mj row">
+  html += `<div class="panel"><h2>Chrono partagé</h2><p class="sub">S'affiche sur toutes les tablettes et sur l'écran géant.</p><div class="actions">
+    ${[2, 3, 5, 10].map((m) => `<button class="btn blue" data-timer="${m}">${m} min</button>`).join("")}
+    <button class="btn plain" id="mj-timer-stop" ${s.timer ? "" : "disabled"}>Arrêter</button></div></div>`;
+
+  html += `<div class="panel"><h2>Réglages</h2><p class="sub">Modifiables à tout moment. Les budgets se recalculent pour toutes les tables.</p><div class="row">
     <label for="c-tables">Tables<input type="number" id="c-tables" min="1" max="12" value="${s.cfg.tables}"></label>
     <label for="c-start">Budget de départ (€)<input type="number" id="c-start" min="0" max="500" value="${s.cfg.start}"></label>
     <label for="c-bonus">Gain par faille (€)<input type="number" id="c-bonus" min="0" max="50" value="${s.cfg.bonus}"></label>
@@ -683,45 +1062,42 @@ function renderMJ() {
     ${[1, 2, 3].map((k) => `<label for="c-loss${k}">Perte à ${k} étoile${k > 1 ? "s" : ""} (€)<input type="number" id="c-loss${k}" min="0" max="200" value="${s.cfg.loss[k]}"></label>`).join("")}
   </div></div>`;
 
-  html += `<div class="panel"><h2>Nouvelle partie</h2><p class="sub">Remet la partie au début et vide les bases de toutes les tables.</p><div class="actions" id="mj-reset-zone">
+  html += `<div class="panel"><h2>Nouvelle partie</h2><p class="sub">Remet la partie au début et vide les bases de toutes les tables.</p><div class="actions">
     ${confirmReset ? `<span class="confirm">Tout effacer ? <button class="btn red" id="mj-reset-yes">Effacer et recommencer</button><button class="btn plain" id="mj-reset-no">Annuler</button></span>` : `<button class="btn plain" id="mj-reset">Recommencer la partie</button>`}
   </div></div>`;
 
   const focused = document.activeElement && document.activeElement.id;
   box.innerHTML = html;
-  if (focused && $(focused) && focused.startsWith("c-")) { const el = $(focused); el.focus(); }
+  if (focused && focused.startsWith("c-") && $(focused)) $(focused).focus();
 
   const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
-  on("mj-reveal", () => { state.phase = "build"; commit(); });
+  on("mj-reveal", () => { state.phase = "build"; state.timer = null; commit(); });
   on("mj-step", () => { state.step = Math.min(3, state.step + 1); commit(); });
   on("mj-close", () => {
     const rid = state.current, res = {};
     tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv).stars, lv }; });
-    state.results[rid] = res;
-    state.played = state.played.concat(rid);
+    state.results[rid] = res; state.played = state.played.concat(rid);
     state.phase = "build"; state.current = null; state.step = 0;
     commit();
   });
-  box.querySelectorAll("[data-launch]").forEach((b) => b.onclick = () => {
-    state.phase = "raid"; state.current = b.dataset.launch; state.step = 0; commit();
-  });
-  on("mj-end", () => { state.phase = "end"; commit(); });
+  box.querySelectorAll("[data-launch]").forEach((b) => b.onclick = () => { state.phase = "raid"; state.current = b.dataset.launch; state.step = 0; state.timer = null; commit(); });
+  box.querySelectorAll("[data-timer]").forEach((b) => b.onclick = () => { state.timer = { end: Date.now() + Number(b.dataset.timer) * 60000 }; commit(); });
+  on("mj-timer-stop", () => { state.timer = null; commit(); });
+  on("mj-end", () => { state.phase = "end"; state.timer = null; commit(); });
   on("mj-reopen", () => { state.phase = "build"; commit(); });
   on("mj-reset", () => { confirmReset = true; renderMJ(); });
   on("mj-reset-no", () => { confirmReset = false; renderMJ(); });
   on("mj-reset-yes", () => {
     confirmReset = false;
-    const cfg = clone(state.cfg);
-    state = normState({ cfg });
+    state = normState({ cfg: clone(state.cfg) });
     tableIds().forEach((id) => { tables[id] = { name: tbl(id).name, flags: {}, levels: {} }; saveTable(id); });
     commit();
   });
-
   const num = (id, fn) => $(id).addEventListener("input", (e) => {
     if (e.target.value === "") return;
     const v = Math.max(0, Math.round(Number(e.target.value)));
     if (!Number.isFinite(v)) return;
-    fn(v); renderAllButMJ(); later("cfg", saveState);
+    fn(v); renderBanner(); renderBase(false); renderGiant(); later("cfg", saveState);
   });
   num("c-tables", (v) => { state.cfg.tables = Math.min(12, Math.max(1, v)); });
   num("c-start", (v) => { state.cfg.start = v; });
@@ -729,21 +1105,20 @@ function renderMJ() {
   num("c-revenue", (v) => { state.cfg.revenue = v; });
   [1, 2, 3].forEach((k) => num("c-loss" + k, (v) => { state.cfg.loss[k] = v; }));
 }
+function commit() { flyOk = Date.now(); checkRaidProgress(); renderAll(false); saveState(); }
 
-function commit() { renderAll(false); saveState(); }
-
-// ---------------- navigation ----------------
-const VIEWS = ["base", "rank", "mj"];
+// ================= navigation =================
+const VIEWS = ["base", "giant", "mj"];
 function show(v) {
   VIEWS.forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
   store.set("clash-view", v);
 }
 VIEWS.forEach((v) => $("tab-" + v).onclick = () => show(v));
+function renderAll(sync) { renderBanner(); renderBase(sync); renderGiant(); renderMJ(); }
 
-function renderAllButMJ() { renderBanner(); renderBase(false); renderRank(); }
-function renderAll(sync) { renderBanner(); renderBase(sync); renderRank(); renderMJ(); }
-
-// ---------------- démarrage ----------------
+// ================= démarrage =================
+renderSoundBtn();
+seen = { raid: null, step: 0, table: myTable };
 renderAll(true);
 show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base");
 
@@ -751,9 +1126,12 @@ show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base")
   try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
   if (!db) { setStatus("Mode démo local : la partie n'est pas partagée entre les tables sur cet appareil."); return; }
   setStatus("Partie partagée connectée : toutes les tables jouent en direct.");
+  let first = true;
   db.doc("game/state").onSnapshot((snap) => {
     if (timers.cfg) return;
     state = normState(snap.exists ? snap.data() : null);
+    if (first) { first = false; seen = { raid: state.phase === "raid" ? state.current : null, step: state.step, table: myTable }; }
+    else checkRaidProgress();
     renderAll(false);
   }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
   db.collection("tables").onSnapshot((snap) => {
@@ -761,7 +1139,7 @@ show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base")
     snap.docs.forEach((d) => { if (d.exists) next[d.id] = clone(d.data()); });
     if (timers.n && tables[myTable]) next[myTable] = tables[myTable];
     tables = next;
-    renderBase(false); renderRank();
+    renderBase(false); renderGiant();
     if (!$("view-mj").hidden && !(document.activeElement && String(document.activeElement.id).startsWith("c-"))) renderMJ();
   }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
 })();
