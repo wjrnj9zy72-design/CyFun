@@ -62,7 +62,36 @@ select, input[type="text"], input[type="number"] { font: 700 1rem var(--f-body);
 
 .game { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .game { grid-template-columns: minmax(0, 1fr); } }
-.stage-box { position: relative; min-width: 0; }
+.stage-box { position: relative; min-width: 0; border-radius: 22px; overflow: hidden; border: 4px solid var(--wood-dark); box-shadow: 0 6px 0 #3d260e; background: #3fa7d6; }
+.stage-box svg.world { overflow: hidden; }
+.wave { animation: wave 3.4s ease-in-out infinite; transform-box: fill-box; }
+@keyframes wave { 0%, 100% { transform: translateX(0); opacity: 0.15; } 50% { transform: translateX(9px); opacity: 0.85; } }
+.foam { stroke-dasharray: 16 10; animation: march 4s linear infinite; }
+.cloud { animation: cloud 80s linear infinite; }
+@keyframes cloud { from { transform: translateX(-620px); } to { transform: translateX(620px); } }
+.boat { animation: boat 40s ease-in-out infinite alternate; }
+@keyframes boat { from { transform: translate(0, 0); } to { transform: translate(150px, 75px); } }
+.led { animation: led 1.1s steps(2) infinite; }
+@keyframes led { 50% { opacity: 0.2; } }
+.pulse { animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+.wave-flag { animation: flagw 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 0 50%; }
+@keyframes flagw { 50% { transform: skewY(10deg) scaleX(0.85); } }
+#tint { opacity: 0; transition: opacity 0.6s; }
+svg.world.raid #tint { opacity: 1; }
+#tint rect { animation: alarm 1.4s ease-in-out infinite; }
+@keyframes alarm { 50% { opacity: 0.35; } }
+svg.world.raid #layer-walkers { display: none; }
+.shake { animation: shake 0.45s; }
+@keyframes shake { 20% { transform: translate(-7px, 3px); } 40% { transform: translate(6px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -2px); } }
+.raid-intro { position: absolute; left: 0; right: 0; top: 36%; display: grid; justify-items: center; gap: 2px; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(165, 25, 12, 0.94) 12%, rgba(165, 25, 12, 0.94) 88%, transparent); color: #fff; animation: intro 3s ease-in-out forwards; pointer-events: none; }
+.raid-intro b { font: 400 2.1rem/1 var(--f-display); letter-spacing: 0.06em; -webkit-text-stroke: 1.5px #3d0b05; paint-order: stroke fill; }
+.raid-intro span { font-weight: 800; }
+@keyframes intro { 0% { transform: translateX(-110%); } 14% { transform: translateX(0); } 86% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(110%); opacity: 0; } }
+.result .card.event h2 { color: var(--blue); }
+.delta { font: 400 1.7rem var(--f-display); margin: 0; }
+.delta.plus { color: var(--green); } .delta.minus { color: var(--red); }
+.why.power { color: var(--red); }
 svg.world { display: block; width: 100%; height: auto; overflow: visible; }
 svg.world text { font-family: var(--f-display); }
 [data-b] { cursor: pointer; }
@@ -186,7 +215,7 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
     <nav class="tabs" role="tablist">
       <button id="tab-base" role="tab" aria-selected="true">Ma base</button>
       <button id="tab-giant" role="tab" aria-selected="false">Écran géant</button>
-      <button id="tab-mj" role="tab" aria-selected="false">Maître du jeu</button>
+      <button id="tab-mj" role="tab" aria-selected="false" hidden>Maître du jeu</button>
     </nav>
   </header>
 
@@ -205,12 +234,20 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
       <button class="sound" id="btn-sound" aria-pressed="false">Son : non</button>
     </div>
     <div class="game">
-      <div class="stage-box">
+      <div class="stage-box" id="stage">
         <svg class="world" id="world" viewBox="-395 -95 790 510" role="group" aria-label="Village de l'Atelier Boisvert">
+          <defs>
+            <linearGradient id="g-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc3e8"/><stop offset="1" stop-color="#2a86bd"/></linearGradient>
+            <linearGradient id="g-grass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3d167"/><stop offset="1" stop-color="#76aa42"/></linearGradient>
+            <radialGradient id="g-glow"><stop offset="0" stop-color="#fff6c2" stop-opacity="0.9"/><stop offset="1" stop-color="#fff6c2" stop-opacity="0"/></radialGradient>
+          </defs>
+          <g id="layer-bg"></g>
           <g id="layer-world"></g>
-          <g id="layer-fx"></g>
+          <g id="layer-walkers" pointer-events="none"></g>
+          <g id="layer-fx" pointer-events="none"></g>
+          <g id="layer-top" pointer-events="none"></g>
         </svg>
-        <div class="result" id="result" hidden></div>
+        <div class="raid-intro" id="raid-intro" hidden></div>
       </div>
       <aside class="panel" id="panel" aria-live="polite"></aside>
     </div>
@@ -219,6 +256,8 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
   <section id="view-giant" hidden>
     <div id="giant-body"></div>
   </section>
+
+  <div class="result" id="result" hidden></div>
 
   <section id="view-mj" hidden>
     <div class="mj" id="mj-body"></div>
@@ -328,37 +367,37 @@ const ALL_OBS = Object.values(OBS).flat();
 
 // Raids : 3 étapes [texte, parades, bâtiment visé]. Une étape est bloquée si UNE parade est atteinte.
 const RAIDS = [
-  { id: "phish", name: "Raid hameçonnage",
+  { id: "phish", unit: ["#1f6fb2", "@"], name: "Raid hameçonnage",
     intro: "Un faux mail « Votre boîte mail est pleine » arrive chez les 22 employés.",
     steps: [
       ["Un employé clique et saisit son mot de passe", [["aware", 2]], "pc"],
       ["L'attaquant se connecte à sa messagerie", [["mfa", 2]], "mail"],
       ["Il envoie de fausses factures à vos clients depuis votre adresse", [["incident", 2]], "hq"]] },
-  { id: "rib", name: "Raid faux RIB",
+  { id: "rib", unit: ["#8e44ad", "€"], name: "Raid faux RIB",
     intro: "Un fournisseur habituel annonce qu'il « change de banque ».",
     steps: [
       ["La comptabilité reçoit un mail crédible avec un nouveau RIB", [], "compta"],
       ["Le RIB est modifié sans vérification", [["aware", 3]], "compta"],
       ["Un virement de 48 000 € part vers l'escroc", [["incident", 2]], "hq"]] },
-  { id: "ransom", name: "Raid rançongiciel",
+  { id: "ransom", unit: ["#c0392b", "$"], name: "Raid rançongiciel",
     intro: "Un groupe criminel scanne Internet à la recherche d'accès à distance ouverts.",
     steps: [
       ["Il devine le mot de passe de l'accès du prestataire", [["access", 3], ["mfa", 3]], "presta"],
       ["Il se propage jusqu'au serveur et à l'atelier", [["patch", 2], ["av", 2]], "srv"],
       ["Tout est chiffré, sauvegardes comprises", [["backup", 2]], "atelier"]] },
-  { id: "laptop", name: "Raid vol de portable",
+  { id: "laptop", unit: ["#2c3e50", "PC"], name: "Raid vol de portable",
     intro: "Le portable du commercial disparaît de sa voiture sur un parking à Liège.",
     steps: [
       ["Le portable est volé", [], "laptop"],
       ["Le voleur lit les devis et le fichier clients", [["device", 2]], "laptop"],
       ["Il ouvre la messagerie restée connectée", [["device", 3], ["incident", 1]], "mail"]] },
-  { id: "wifi", name: "Raid Wi-Fi",
+  { id: "wifi", unit: ["#16a085", "Wi"], name: "Raid Wi-Fi",
     intro: "Un visiteur patiente dans la salle d'attente avec son ordinateur portable.",
     steps: [
       ["Il se connecte au routeur avec le mot de passe d'usine", [["fw", 1]], "wifi"],
       ["Il atteint le NAS qui n'est plus mis à jour", [["fw", 2], ["patch", 2]], "srv"],
       ["Il copie les plans et la liste des clients", [["av", 3]], "srv"]] },
-  { id: "usb", name: "Raid clé USB",
+  { id: "usb", unit: ["#d35400", "USB"], name: "Raid clé USB",
     intro: "Une clé USB « Plans 2027 » traîne sur le parking de l'atelier.",
     steps: [
       ["Un ouvrier la branche sur le PC de la CNC", [["aware", 1]], "atelier"],
@@ -367,8 +406,31 @@ const RAIDS = [
 ];
 const RAID_BY_ID = Object.fromEntries(RAIDS.map((r) => [r.id, r]));
 
-const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, loss: [0, 10, 25, 45] };
-const INITIAL_STATE = { phase: "reco", current: null, step: 0, played: [], results: {}, timer: null, cfg: DEFAULT_CFG };
+// Cartes événement : effet calculé pour chaque table au moment du tirage.
+const EVENTS = [
+  { id: "nis2", name: "Un client passe sous NIS2", text: "Votre plus gros client industriel exige la preuve que la cybersécurité est pilotée.",
+    rule: "QG cyber niveau 2 ou plus : contrat renouvelé et élargi (+25 €). Sinon : contrat perdu (−15 €).",
+    f: (lv) => (lv.gouv || 0) >= 2 ? 25 : -15 },
+  { id: "assur", name: "Renouvellement de l'assurance cyber", text: "L'assureur envoie son questionnaire avant de fixer la prime.",
+    rule: "Sauvegardes niveau 2 et plan de crise niveau 2 : prime réduite (+15 €). Sinon : prime majorée (−20 €).",
+    f: (lv) => (lv.backup || 0) >= 2 && (lv.incident || 0) >= 2 ? 15 : -20 },
+  { id: "subside", name: "Subvention régionale", text: "La Région finance les premiers pas en cybersécurité des PME.",
+    rule: "+20 € pour tous, +10 € de plus si un responsable cyber est nommé (QG niveau 1).",
+    f: (lv) => 20 + ((lv.gouv || 0) >= 1 ? 10 : 0) },
+  { id: "presta", name: "Le prestataire IT fait faillite", text: "Un nouveau prestataire doit tout reprendre en urgence.",
+    rule: "Porte des accès niveau 1 (comptes nominatifs et documentés) : reprise propre (0 €). Sinon : −20 €.",
+    f: (lv) => (lv.access || 0) >= 1 ? 0 : -20 },
+  { id: "eol", name: "Fin de support d'un système", text: "Les correctifs de sécurité s'arrêtent pour une partie du parc informatique.",
+    rule: "Forge des mises à jour niveau 3 : déjà anticipé (0 €). Sinon : remplacement en urgence (−15 €).",
+    f: (lv) => (lv.patch || 0) >= 3 ? 0 : -15 },
+  { id: "audit", name: "Audit CyFun Small d'un grand client", text: "Le client vérifie vos mesures de base avant de vous référencer.",
+    rule: "7 défenses construites ou plus : fournisseur référencé (+30 €). Sinon : −10 €.",
+    f: (lv) => DEF_IDS.filter((d) => (lv[d] || 0) >= 1).length >= 7 ? 30 : -10 },
+];
+const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+
+const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, upkeep: 2, escalate: true, loss: [0, 10, 25, 45] };
+const INITIAL_STATE = { phase: "reco", current: null, step: 0, power: 0, powers: {}, played: [], results: {}, events: [], lastEvent: null, timer: null, cfg: DEFAULT_CFG };
 
 // ================= utilitaires =================
 const $ = (id) => document.getElementById(id);
@@ -398,6 +460,9 @@ function normState(s) {
   o.played = Array.isArray(o.played) ? o.played : [];
   o.results = o.results || {};
   o.timer = o.timer && o.timer.end ? o.timer : null;
+  o.powers = o.powers || {};
+  o.events = Array.isArray(o.events) ? o.events : [];
+  o.power = Number(o.power) || 0;
   return o;
 }
 function tbl(id) { const t = tables[id] || {}; return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {} }; }
@@ -419,13 +484,17 @@ function recoBonus(flags) {
   const r = reco(flags);
   return Math.max(0, (r.good - r.bad) * state.cfg.bonus);
 }
-function income(tid) {
-  return state.played.reduce((s, rid) => {
-    const res = state.results[rid] && state.results[rid][tid];
-    return s + state.cfg.revenue - (state.cfg.loss[res ? res.s : 3] || 0);
-  }, 0);
+const totalLv = (lv) => DEF_IDS.reduce((s, d) => s + (lv[d] || 0), 0);
+// Résilience (CyFun « Répondre » et « Restaurer ») : sauvegardes niv. 2 et plan de crise niv. 1 divisent les pertes par deux.
+const resilient = (lv) => (lv.backup || 0) >= 2 && (lv.incident || 0) >= 1;
+function raidLoss(stars, lv) { const l = state.cfg.loss[stars] || 0; return resilient(lv) ? Math.round(l / 2) : l; }
+function raidIncome(rid, tid) {
+  const res = state.results[rid] && state.results[rid][tid], lv = (res && res.lv) || {};
+  return state.cfg.revenue - raidLoss(res ? res.s : 3, lv) - state.cfg.upkeep * totalLv(lv);
 }
-function budget(tid) { const t = tbl(tid); return state.cfg.start + recoBonus(t.flags) + income(tid) - spent(t.levels); }
+function income(tid) { return state.played.reduce((s, rid) => s + raidIncome(rid, tid), 0); }
+function eventsTotal(tid) { return state.events.reduce((s, e) => s + ((e.deltas && e.deltas[tid]) || 0), 0); }
+function budget(tid) { const t = tbl(tid); return state.cfg.start + recoBonus(t.flags) + income(tid) + eventsTotal(tid) - spent(t.levels); }
 function trophies(tid) {
   return state.played.reduce((s, rid) => { const res = state.results[rid] && state.results[rid][tid]; return s + (res ? (3 - res.s) * 10 : 0); }, 0);
 }
@@ -439,9 +508,12 @@ function canUpgrade(tid, d) {
   const lv = tbl(tid).levels, l = lv[d] || 0, next = DEFS[d].lv[l];
   return state.phase === "build" && !!next && l < cap(d, lv) && next[0] <= budget(tid);
 }
-function resolve(raid, levels) {
+// power : les raids plus tardifs exigent des défenses plus hautes (plafond niveau 3).
+const need = (l, power) => Math.min(3, l + (power || 0));
+const reqLabel = (b, power) => defLabel(b[0], need(b[1], power));
+function resolve(raid, levels, power = 0) {
   for (let i = 0; i < raid.steps.length; i++) {
-    const by = raid.steps[i][1].filter(([d, l]) => (levels[d] || 0) >= l);
+    const by = raid.steps[i][1].filter(([d, l]) => (levels[d] || 0) >= need(l, power));
     if (by.length) return { stars: i, blockedAt: i, by };
   }
   return { stars: 3, blockedAt: -1, by: [] };
@@ -450,7 +522,7 @@ function resolve(raid, levels) {
 function firesFor(levels) {
   const f = new Set();
   if (state.phase !== "raid" || !RAID_BY_ID[state.current]) return f;
-  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels);
+  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels, state.power);
   for (let i = 0; i < state.step; i++) {
     if (r.blockedAt >= 0 && i >= r.blockedAt) break;
     if (!pendingFire.has(i)) f.add(raid.steps[i][2]);
@@ -534,19 +606,19 @@ function drawBuilding(id, X, Y) {
     case "hq": return { h: 100, svg: box(X, Y, 0.75, 44, "#efe0bf") + windowsRow(X, Y, 0.75, 3, 16, 32, "#5a86b0") +
       faceL(X, Y, 0.75, 0.42, 0.58, 0, 22, "#6b4423") + roof(X, Y, 0.75, 44, 34, "#c0392b") +
       `<line x1="${X}" y1="${Y - 78}" x2="${X}" y2="${Y - 104}" stroke="#4a3520" stroke-width="2.5"/>` +
-      `<polygon class="bounce" points="${P([[X, Y - 104], [X + 20, Y - 98], [X, Y - 92]])}" fill="#f0b429" stroke="#8a5a2b"/>` };
+      `<polygon class="wave-flag" points="${P([[X, Y - 104], [X + 20, Y - 98], [X, Y - 92]])}" fill="#f0b429" stroke="#8a5a2b"/>` };
     case "mail": return { h: 96, svg: box(X, Y, 0.55, 66, "#e3f4f1", "#1f8a8a") +
       [14, 30, 46].map((t) => faceR(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#1f8a8a") + faceL(X, Y, 0.55, 0.1, 0.9, t, t + 7, "#176b6b")).join("") +
       `<line x1="${X}" y1="${Y - 66}" x2="${X}" y2="${Y - 94}" stroke="#4a4a4a" stroke-width="2.5"/>` +
       `<ellipse cx="${X + 9}" cy="${Y - 86}" rx="9" ry="5" fill="#f5f5f5" stroke="#4a4a4a" transform="rotate(-25 ${X + 9} ${Y - 86})"/>` +
       faceR(X, Y, 0.55, 0.3, 0.7, 52, 62, "#fff") };
     case "srv": return { h: 62, svg: box(X, Y, 0.6, 60, "#3a4a5c", "#566779") +
-      [10, 20, 30, 40, 50].map((t, i) => faceR(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#24303d") + faceR(X, Y, 0.6, 0.12 + (i % 3) * 0.08, 0.2 + (i % 3) * 0.08, t, t + 4, "#56d364")).join("") +
+      [10, 20, 30, 40, 50].map((t, i) => faceR(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#24303d") + `<g class="led" style="animation-delay:${i * 0.23}s">${faceR(X, Y, 0.6, 0.12 + (i % 3) * 0.08, 0.2 + (i % 3) * 0.08, t, t + 4, "#56d364")}</g>`).join("") +
       [10, 20, 30, 40, 50].map((t) => faceL(X, Y, 0.6, 0.12, 0.88, t, t + 4, "#1b2530")).join("") };
     case "wifi": return { h: 96, svg: box(X, Y, 0.42, 24, "#e8eef5") + roof(X, Y, 0.42, 24, 14, "#2c6ea8") +
       `<line x1="${X}" y1="${Y - 36}" x2="${X}" y2="${Y - 88}" stroke="#4a4a4a" stroke-width="3"/>` +
       `<circle cx="${X}" cy="${Y - 90}" r="4" fill="#d2452f"/>` +
-      [10, 18, 26].map((r) => `<path d="M ${X - r} ${Y - 84 - r * 0.5} Q ${X} ${Y - 94 - r} ${X + r} ${Y - 84 - r * 0.5}" fill="none" stroke="#2c6ea8" stroke-width="2.5" stroke-linecap="round" opacity="${1 - r / 40}"/>`).join("") };
+      [10, 18, 26].map((r, k) => `<path class="pulse" style="animation-delay:${k * 0.3}s" d="M ${X - r} ${Y - 84 - r * 0.5} Q ${X} ${Y - 94 - r} ${X + r} ${Y - 84 - r * 0.5}" fill="none" stroke="#2c6ea8" stroke-width="2.5" stroke-linecap="round" opacity="${1 - r / 40}"/>`).join("") };
     case "compta": return { h: 72, svg: box(X, Y, 0.65, 40, "#f1e6fa") + windowsRow(X, Y, 0.65, 2, 14, 28, "#6c8fbf") +
       roof(X, Y, 0.65, 40, 30, "#8e5bb5") +
       `<circle cx="${X + 26}" cy="${Y - 30}" r="9" fill="#f0b429" stroke="#8a5a2b" stroke-width="1.5"/><text x="${X + 26}" y="${Y - 26}" font-size="11" text-anchor="middle" fill="#5e3b17">€</text>` };
@@ -575,11 +647,48 @@ function drawBuilding(id, X, Y) {
   return { h: 30, svg: box(X, Y, 0.6, 30, "#ccc") };
 }
 
+function emblem(d, x, y) {
+  const c = DEFS[d].color, st = `stroke="${c}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+  const g = {
+    gouv: `<path d="M-5 3 L-5 -3 L-2.5 0 L0 -4 L2.5 0 L5 -3 L5 3 Z" fill="${c}"/>`,
+    incident: `<rect x="-1.2" y="-5" width="2.4" height="6" rx="1" fill="${c}"/><circle cx="0" cy="3.6" r="1.4" fill="${c}"/>`,
+    access: `<circle cx="-2.2" cy="0" r="2.6" ${st}/><path d="M0.4 0 H5.5 M4 0 V2.5 M2.4 0 V2" ${st}/>`,
+    aware: `<path d="M-5 -3 L0 -2 L5 -3 L5 3.5 L0 4.5 L-5 3.5 Z M0 -2 V4.5" ${st}/>`,
+    fw: `<path d="M-5 -3.5 H5 V3.5 H-5 Z M-5 0 H5 M-1.5 -3.5 V0 M2 0 V3.5 M-3 0 V3.5" ${st}/>`,
+    backup: `<path d="M3.8 -1.5 A4.2 4.2 0 1 0 3 2.8" ${st}/><path d="M3.8 -4.2 V-1 H0.8" ${st}/>`,
+    mfa: `<rect x="-4" y="-0.5" width="8" height="5.5" rx="1" fill="${c}"/><path d="M-2.4 -0.5 V-2.4 A2.4 2.4 0 0 1 2.4 -2.4 V-0.5" ${st}/>`,
+    device: `<rect x="-2.8" y="-4.6" width="5.6" height="9.2" rx="1.2" ${st}/><circle cx="0" cy="2.6" r="0.8" fill="${c}"/>`,
+    patch: `<path d="M-4 4 L1.5 -1.5" stroke="${c}" stroke-width="2.6" stroke-linecap="round"/><path d="M1 -3.5 A2.8 2.8 0 1 0 4.2 -0.2" ${st}/>`,
+    av: `<circle cx="0" cy="0" r="3.6" ${st}/><path d="M0 -6 V-2.5 M0 2.5 V6 M-6 0 H-2.5 M2.5 0 H6" ${st}/>`,
+  }[d];
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="7.5" fill="#fffaf0" stroke="#2a2118" stroke-width="1.2"/>${g}</g>`;
+}
 function tower(d, lv, X, Y, pop) {
   if (!lv) return `<polygon points="${P(Object.values(corners(X, Y, 0.24)))}" fill="rgba(42,33,24,0.12)" stroke="#2a2118" stroke-opacity="0.45" stroke-dasharray="4 3"/>`;
   const col = DEFS[d].color, h = 10 + 12 * lv, r = 14 + 3 * lv;
-  let s = box(X, Y, 0.22, h, col) + roof(X, Y, 0.22, h, r, shade(col, -0.35));
+  let s;
+  if (d === "av") {
+    // canon : socle, tourelle et fût qui s'allonge avec le niveau
+    const bh = 10 + 4 * lv, len = 12 + 5 * lv;
+    s = box(X, Y, 0.26, bh, "#6b6f75") + `<ellipse cx="${X}" cy="${Y - bh - 2}" rx="15" ry="9" fill="${col}" stroke="#2a2118" stroke-opacity="0.5"/>` +
+      `<line x1="${X}" y1="${Y - bh - 4}" x2="${X - len}" y2="${Y - bh - 4 + len * 0.45}" stroke="#2a2118" stroke-width="${6 + lv}" stroke-linecap="round"/>` +
+      `<line x1="${X}" y1="${Y - bh - 4}" x2="${X - len}" y2="${Y - bh - 4 + len * 0.45}" stroke="${shade(col, -0.2)}" stroke-width="${3 + lv}" stroke-linecap="round"/>`;
+    s += emblem(d, X + 2, Y - bh + 6);
+    s += `<circle cx="${X + 18}" cy="${Y - bh - 6}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 18}" y="${Y - bh - 2}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+    return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+  }
+  if (d === "backup") {
+    // coffre-fort : large et trapu, cerclé d'or
+    const vh = 12 + 7 * lv;
+    s = box(X, Y, 0.28, vh, col, shade(col, 0.3));
+    for (let k = 1; k <= lv; k++) s += faceR(X, Y, 0.28, 0, 1, (vh * k) / (lv + 1) - 1.5, (vh * k) / (lv + 1) + 1.5, "#f0b429") + faceL(X, Y, 0.28, 0, 1, (vh * k) / (lv + 1) - 1.5, (vh * k) / (lv + 1) + 1.5, "#b7830e");
+    s += emblem(d, X, Y + 0.28 * TH - vh * 0.5);
+    s += `<circle cx="${X + 18}" cy="${Y - vh + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 18}" y="${Y - vh + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
+    return `<g class="${pop ? "pop" : ""}">${s}</g>`;
+  }
+  s = box(X, Y, 0.22, h, col) + roof(X, Y, 0.22, h, r, shade(col, -0.35));
   if (lv >= 2) s += faceR(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118") + faceL(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118");
+  s += emblem(d, X, Y + 0.22 * TH - Math.min(h * 0.45, 16));
   if (lv >= 3) s += `<line x1="${X}" y1="${Y - h - r}" x2="${X}" y2="${Y - h - r - 14}" stroke="#4a3520" stroke-width="2"/><polygon points="${P([[X, Y - h - r - 14], [X + 12, Y - h - r - 10], [X, Y - h - r - 6]])}" fill="#f0b429"/>`;
   s += `<circle cx="${X + 16}" cy="${Y - h + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 16}" y="${Y - h + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
   return `<g class="${pop ? "pop" : ""}">${s}</g>`;
@@ -596,7 +705,12 @@ const PLOT = {};
 BUILDINGS.forEach((b, i) => { PLOT[b.id] = [1.5 + 3 * (i % 3), 1.5 + 3 * Math.floor(i / 3)]; });
 const SLOTS = [[1.08, 0.12], [0.12, 1.08]];
 function towerGrid(d) { const [gx, gy] = PLOT[DEFS[d].b], [ox, oy] = SLOTS[DEFS[d].slot]; return [gx + ox, gy + oy]; }
-function towerTop(d, lv) { const [X, Y] = iso(...towerGrid(d)); return [X, Y - (10 + 12 * Math.max(lv, 1)) - 10]; }
+function towerTop(d, lv) {
+  const [X, Y] = iso(...towerGrid(d)), l = Math.max(lv, 1);
+  if (d === "av") { const bh = 10 + 4 * l, len = 12 + 5 * l; return [X - len, Y - bh - 4 + len * 0.45]; }
+  if (d === "backup") return [X, Y - (12 + 7 * l)];
+  return [X, Y - (10 + 12 * l) - 10];
+}
 
 function wall(lv, part) {
   if (!lv) return "";
@@ -620,6 +734,7 @@ function wall(lv, part) {
 
 // Décor fixe : touffes d'herbe et arbres
 const TUFTS = (() => { let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; const t = []; for (let i = 0; i < 70; i++) t.push([0.3 + rnd() * 8.4, 0.3 + rnd() * 8.4]); return t; })();
+const FLOWERS = (() => { let seed = 11; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; const cols = ["#ffffff", "#ffd23f", "#ff7aa2", "#b58cff"]; const t = []; for (let i = 0; i < 26; i++) { const gx = 0.4 + rnd() * 8.2, gy = 0.4 + rnd() * 8.2; if (Math.abs(gx % 3 - 1.5) > 1.2 || Math.abs(gy % 3 - 1.5) > 1.2) t.push([gx, gy, cols[i % 4]]); } return t; })();
 const TREES = [[0.35, 3], [0.35, 6.1], [3, 0.35], [6.1, 0.35], [8.6, 4.5], [4.5, 8.6], [2.9, 2.9], [6.05, 6.05]];
 function tree(X, Y, k) {
   return `<ellipse cx="${X}" cy="${Y + 2}" rx="12" ry="5" fill="rgba(0,0,0,0.18)"/><rect x="${X - 2.5}" y="${Y - 14}" width="5" height="15" fill="#6b4423"/>` +
@@ -634,7 +749,8 @@ function drawWorld(levels, o = {}) {
   s += `<polygon points="${P([c[3], c[2], up(c[2], -30), up(c[3], -30)])}" fill="#8b5e34"/>`;
   s += `<polygon points="${P([c[2], c[1], up(c[1], -30), up(c[2], -30)])}" fill="#a8733f"/>`;
   s += `<polygon points="${P([c[3], c[2], up(c[2], -8), up(c[3], -8)])}" fill="#5f8f34"/><polygon points="${P([c[2], c[1], up(c[1], -8), up(c[2], -8)])}" fill="#6ea03d"/>`;
-  s += `<polygon points="${P(c)}" fill="#86b94f"/>`;
+  s += `<polygon points="${P(c)}" fill="${mini ? "#86b94f" : "url(#g-grass)"}"/>`;
+  if (!mini) FLOWERS.forEach(([gx, gy, col]) => { const [X, Y] = iso(gx, gy); s += `<circle cx="${X}" cy="${Y}" r="2.4" fill="${col}"/><circle cx="${X + 5}" cy="${Y + 2}" r="2" fill="${col}"/>`; });
   // chemins
   const road = (a1, a2, b1, b2) => `<polygon points="${P([iso(a1, b1), iso(a2, b1), iso(a2, b2), iso(a1, b2)])}" fill="#d9c08a" opacity="0.85"/>`;
   [3, 6].forEach((v) => { s += road(v - 0.16, v + 0.16, 0.4, 8.6) + road(0.4, 8.6, v - 0.16, v + 0.16); });
@@ -716,6 +832,7 @@ function renderHUD() {
   const b = budget(myTable), t = tbl(myTable);
   const g = $("r-gold");
   g.innerHTML = `${ICON.gold}<span>${b} €</span>`;
+  g.title = `Départ ${state.cfg.start} € · failles ${recoBonus(t.flags)} € · raids (revenus − pertes − entretien) ${income(myTable)} € · événements ${eventsTotal(myTable)} € · défenses −${spent(t.levels)} €`;
   g.classList.toggle("neg", b < 0);
   if (lastGold !== null && lastGold !== b && Date.now() - flyOk < 1500) {
     const f = document.createElement("span");
@@ -773,6 +890,7 @@ function badges() {
 }
 function renderVillage() {
   const levels = tbl(myTable).levels;
+  $("world").classList.toggle("raid", state.phase === "raid");
   $("layer-world").innerHTML = drawWorld(levels, { sel: selected, fires: firesFor(levels), badges: badges() });
 }
 function selectBuilding(id) {
@@ -786,7 +904,7 @@ $("layer-world").addEventListener("keydown", (e) => {
 });
 
 function towerIcon(d, lv) {
-  return `<svg class="icon" viewBox="-34 -78 68 88">${tower(d, Math.max(1, lv), 0, 0, false).replace(/<circle[^]*$/, "</g>")}</svg>`;
+  return `<svg class="icon" viewBox="-36 -78 72 92">${tower(d, Math.max(1, lv), 0, 0, false)}</svg>`;
 }
 function renderPanel() {
   const p = $("panel");
@@ -845,6 +963,9 @@ function renderPanel() {
     const m = mine(); m.levels[d] = (m.levels[d] || 0) + 1;
     justBuilt = { d, at: Date.now() }; flyOk = Date.now(); SFX.build();
     renderBase(false); saveTable(myTable);
+    const [tx, ty] = towerTop(d, m.levels[d]), fx = $("layer-fx");
+    burst(fx, tx, ty + 10, ["#f0b429", "#ffffff", "#ffe14d"], 16, 50, 900);
+    floatText(fx, tx, ty - 10, m.levels[d] === 3 ? "Niveau max !" : "Niveau " + m.levels[d] + " !", "#b7830e");
   });
   p.querySelectorAll("[data-down]").forEach((btn) => btn.onclick = () => {
     const d = btn.dataset.down, m = mine(), l = m.levels[d] || 0;
@@ -856,30 +977,45 @@ function renderPanel() {
 }
 
 function raidHTML(raid, levels, step) {
-  const r = resolve(raid, levels);
-  let html = `<div class="raid"><h2>${esc(raid.name)}</h2><p class="intro">${esc(raid.intro)}</p>`;
+  const r = resolve(raid, levels, state.power);
+  let html = `<div class="raid"><h2>${esc(raid.name)}</h2><p class="intro">${esc(raid.intro)}</p>${state.power ? `<p class="why power">Attaquants aguerris : +${state.power} niveau${state.power > 1 ? "x" : ""} de défense exigé${state.power > 1 ? "s" : ""}.</p>` : ""}`;
   raid.steps.forEach(([txt, blockers], i) => {
     const shown = i < step && !pendingFire.has(i);
     let cls = "step", line = "";
-    const alt = blockers.length ? "Parade : " + blockers.map((b) => defLabel(...b)).join(" ou ") : "Aucune parade possible à cette étape.";
+    const alt = blockers.length ? "Parade : " + blockers.map((b) => reqLabel(b, state.power)).join(" ou ") : "Aucune parade possible à cette étape.";
     if (!shown) { cls += " off"; line = `<span class="hint">${i < step ? "L'attaque avance…" : "En attente du maître du jeu…"}</span>`; }
     else if (r.blockedAt >= 0 && i > r.blockedAt) { cls += " off"; line = `<span class="res-line">L'attaque s'est arrêtée avant.</span>`; }
-    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">Bloqué par ${esc(r.by.map((b) => defLabel(...b)).join(" et "))} !</span>`; }
+    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">Bloqué par ${esc(r.by.map((b) => reqLabel(b, state.power)).join(" et "))} !</span>`; }
     else { cls += " win"; line = `<span class="res-line">L'attaquant passe.</span><span class="hint">${esc(alt)}</span>`; }
     html += `<div class="${cls}"><span class="k">Étape ${i + 1}</span><span>${esc(txt)}</span>${line}</div>`;
   });
   return html + `</div>`;
 }
 
+let seenEvent = null;
+function checkEvent(initial) {
+  const le = state.lastEvent;
+  if (!le || seenEvent === le.at) return;
+  seenEvent = le.at;
+  if (initial || Date.now() - le.at > 120000) return;
+  const e = EVENT_BY_ID[le.id], ev = state.events.find((x) => x.id === le.id);
+  if (!e || !ev) return;
+  const d = ev.deltas[myTable] || 0, el = $("result");
+  el.innerHTML = `<div class="card event"><span class="why">Carte événement</span><h2>${esc(e.name)}</h2><p>${esc(e.text)}</p><p class="why">${esc(e.rule)}</p>
+    <p class="delta ${d > 0 ? "plus" : d < 0 ? "minus" : ""}">${d > 0 ? "+" + d + " €" : d < 0 ? "−" + (-d) + " €" : "Aucun effet"}</p><button class="btn gold" id="btn-result">Continuer</button></div>`;
+  el.hidden = false; $("btn-result").onclick = () => { el.hidden = true; };
+  (d >= 0 ? SFX.coin : SFX.lose)();
+}
 function showResult(raid, levels) {
-  const r = resolve(raid, levels), loss = state.cfg.loss[r.stars];
+  const r = resolve(raid, levels, state.power), loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
   const titles = ["Défense réussie !", "Base touchée", "Base très endommagée", "Base détruite"];
   const el = $("result");
   el.innerHTML = `<div class="card"><span class="why">${esc(raid.name)} · étoiles gagnées par l'attaquant</span>
     <h2 class="${r.stars === 0 ? "win" : "lose"}">${titles[r.stars]}</h2>
     <div class="big-stars">${[0, 1, 2].map((i) => i < r.stars ? STAR(true, "on").replace("<svg", `<svg style="animation-delay:${0.25 + i * 0.3}s"`) : STAR(false)).join("")}</div>
     <p>Dégâts : ${Math.round(r.stars / 3 * 100)} % · +${(3 - r.stars) * 10} trophées · ${loss ? "−" + loss + " € de pertes" : "aucune perte"}</p>
-    ${r.stars ? `<p class="why">Il fallait : ${esc(raid.steps.slice(0, r.stars).map((s) => s[1].length ? s[1].map((b) => defLabel(...b)).join(" ou ") : "").filter(Boolean).join(" ; ") || "limiter les étapes suivantes")}</p>` : ""}
+    ${halved ? `<p class="why" style="color:var(--green)">Résilience : sauvegardes et plan de crise divisent les pertes par deux.</p>` : ""}
+    ${r.stars ? `<p class="why">Il fallait : ${esc(raid.steps.slice(0, r.stars).map((s) => s[1].length ? s[1].map((b) => reqLabel(b, state.power)).join(" ou ") : "").filter(Boolean).join(" ; ") || "limiter les étapes suivantes")}</p>` : ""}
     <button class="btn gold" id="btn-result">Continuer</button></div>`;
   el.hidden = false;
   $("btn-result").onclick = () => { el.hidden = true; };
@@ -888,10 +1024,37 @@ function showResult(raid, levels) {
 
 // ---------- animation des raids ----------
 let animChain = Promise.resolve();
-function unitsSVG() {
-  const u = (dx, dy) => `<g transform="translate(${dx} ${dy})"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-5" y="-11" width="10" height="13" rx="4" fill="#2a2118"/><circle cx="0" cy="-14" r="5" fill="#2a2118"/><circle cx="-1.8" cy="-14" r="1.3" fill="#ff4d4d"/><circle cx="1.8" cy="-14" r="1.3" fill="#ff4d4d"/></g></g>`;
-  return u(0, 0) + u(-14, 6) + u(12, 7) + u(-2, 14);
+function unitsSVG(raid, n) {
+  const [col, glyph] = raid.unit || ["#2a2118", "?"];
+  const u = (dx, dy, k) => `<g transform="translate(${dx} ${dy})"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob" style="animation-delay:${k * 0.07}s"><rect x="-5" y="-11" width="10" height="13" rx="4" fill="${col}" stroke="#1a130c" stroke-width="1"/><circle cx="0" cy="-14" r="5.5" fill="#1a130c"/><circle cx="-1.8" cy="-14" r="1.3" fill="#ff4d4d"/><circle cx="1.8" cy="-14" r="1.3" fill="#ff4d4d"/></g></g>`;
+  const pos = [[0, 0], [-14, 6], [12, 7], [-2, 14], [-18, 18], [14, 20], [2, 26]];
+  let out = "";
+  for (let k = 0; k < n; k++) out += u(pos[k][0], pos[k][1], k);
+  const w = 12 + glyph.length * 8;
+  out += `<line x1="6" y1="-4" x2="6" y2="-44" stroke="#4a3520" stroke-width="2"/><rect x="6" y="-44" width="${w}" height="16" rx="2" fill="${col}" stroke="#1a130c"/><text x="${6 + w / 2}" y="-32" text-anchor="middle" font-size="12" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${glyph}</text>`;
+  return out;
 }
+const SVGNS = "http://www.w3.org/2000/svg";
+function burst(fx, x, y, cols, n, spread, ms) {
+  if (REDUCED) return;
+  for (let k = 0; k < n; k++) {
+    const c = document.createElementNS(SVGNS, "circle"), a = (Math.PI * 2 * k) / n + Math.random() * 0.5, d = spread * (0.5 + Math.random() * 0.6);
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 3 + Math.random() * 4); c.setAttribute("fill", cols[k % cols.length]); c.style.transformBox = "fill-box"; c.style.transformOrigin = "center";
+    fx.appendChild(c);
+    c.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d * 0.7 - 10}px) scale(0.2)`, opacity: 0 }], { duration: ms, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" });
+    setTimeout(() => c.remove(), ms + 50);
+  }
+}
+function shoot(fx, from, to, col, ms) {
+  const b = document.createElementNS(SVGNS, "circle");
+  b.setAttribute("r", 5); b.setAttribute("fill", col); b.setAttribute("stroke", "#fff"); b.setAttribute("stroke-width", "2");
+  fx.appendChild(b);
+  if (REDUCED) { b.remove(); return Promise.resolve(); }
+  const mid = [(from[0] + to[0]) / 2, Math.min(from[1], to[1]) - 50];
+  const a = b.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${mid[0]}px, ${mid[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, easing: "linear", fill: "forwards" });
+  return a.finished.catch(() => {}).then(() => b.remove());
+}
+function shakeStage() { const st = $("stage"); if (!st || REDUCED) return; st.classList.remove("shake"); void st.offsetWidth; st.classList.add("shake"); }
 function moveEl(el, from, to, ms) {
   if (REDUCED) { el.setAttribute("transform", `translate(${to[0]} ${to[1]})`); return Promise.resolve(); }
   const a = el.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, fill: "forwards", easing: "linear" });
@@ -906,29 +1069,37 @@ function floatText(fx, x, y, txt, col) {
   setTimeout(() => t.remove(), 1700);
 }
 async function playStep(raid, i, levels) {
-  const fx = $("layer-fx"), r = resolve(raid, levels);
+  const fx = $("layer-fx"), r = resolve(raid, levels, state.power);
   const [tgx, tgy] = PLOT[raid.steps[i][2]];
   const from = i % 2 ? iso(tgx, 10.4) : iso(10.4, tgy);
   const to = i % 2 ? iso(tgx - 0.2, tgy + 1.05) : iso(tgx + 1.05, tgy - 0.2);
   const blocked = r.blockedAt === i;
-  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.innerHTML = unitsSVG(); fx.appendChild(g);
+  const g = document.createElementNS(SVGNS, "g");
+  g.innerHTML = unitsSVG(raid, 4 + i + state.power); fx.appendChild(g);
   SFX.march();
   const end = blocked ? [from[0] + (to[0] - from[0]) * 0.6, from[1] + (to[1] - from[1]) * 0.6] : to;
   await moveEl(g, from, end, 1500);
   if (blocked) {
-    const [d, lv] = r.by[0], [tx, ty] = towerTop(d, levels[d] || lv);
-    const beam = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    beam.innerHTML = `<line x1="${tx}" y1="${ty}" x2="${end[0]}" y2="${end[1] - 8}" stroke="#7df9ff" stroke-width="6" stroke-linecap="round" opacity="0.9"/><line x1="${tx}" y1="${ty}" x2="${end[0]}" y2="${end[1] - 8}" stroke="#fff" stroke-width="2"/><circle cx="${end[0]}" cy="${end[1] - 6}" r="26" fill="none" stroke="#7df9ff" stroke-width="4"/>`;
-    fx.appendChild(beam);
+    // chaque défense qui bloque tire une salve
+    const hitPt = [end[0], end[1] - 8];
+    const volleys = r.by.flatMap(([d, lv]) => { const top = towerTop(d, levels[d] || lv); return [0, 1, 2].map((k) => ({ top, col: DEFS[d].color, k })); });
     SFX.block();
-    floatText(fx, end[0], end[1] - 30, "Bloqué !", "#2f8f46");
-    if (!REDUCED) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
-    await sleep(700); beam.remove();
+    await Promise.all(volleys.map((v) => sleep(v.k * 160).then(() => shoot(fx, v.top, hitPt, v.col, 520))));
+    const shield = document.createElementNS(SVGNS, "circle");
+    shield.setAttribute("cx", hitPt[0]); shield.setAttribute("cy", hitPt[1]); shield.setAttribute("r", 30);
+    shield.setAttribute("fill", "rgba(125,249,255,0.25)"); shield.style.transformBox = "fill-box"; shield.style.transformOrigin = "center"; shield.setAttribute("stroke", "#7df9ff"); shield.setAttribute("stroke-width", "4");
+    fx.appendChild(shield);
+    burst(fx, hitPt[0], hitPt[1], ["#7df9ff", "#ffffff", DEFS[r.by[0][0]].color], 14, 46, 700);
+    floatText(fx, end[0], end[1] - 40, "Bloqué !", "#2f8f46");
+    if (!REDUCED) { g.animate([{ opacity: 1, filter: "brightness(3)" }, { opacity: 0 }], { duration: 500, fill: "forwards" }); shield.animate([{ transform: "scale(0.6)", opacity: 1 }, { transform: "scale(1.4)", opacity: 0 }], { duration: 700, fill: "forwards" }); }
+    await sleep(800); shield.remove();
   } else {
     SFX.hit();
     const bl = $("bld-" + raid.steps[i][2]);
     if (bl) bl.classList.add("hitflash");
+    const [bx, by] = iso(tgx, tgy);
+    burst(fx, bx, by - 30, ["#ff8c1a", "#ffe14d", "#5a5a5a", "#d2452f"], 22, 80, 900);
+    shakeStage();
     floatText(fx, to[0], to[1] - 60, "Touché !", "#d2452f");
     await sleep(900);
     if (!REDUCED) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
@@ -937,7 +1108,7 @@ async function playStep(raid, i, levels) {
   g.remove();
 }
 function queueRaidAnim(raid, fromStep, toStep, levels) {
-  const r = resolve(raid, levels);
+  const r = resolve(raid, levels, state.power);
   for (let i = fromStep; i < toStep; i++) pendingFire.add(i);
   renderVillage(); renderPanel();
   animChain = animChain.then(async () => {
@@ -954,6 +1125,13 @@ function queueRaidAnim(raid, fromStep, toStep, levels) {
     }
   });
 }
+function showIntro(raid) {
+  const el = $("raid-intro");
+  el.innerHTML = `<b>Alerte raid !</b><span>${esc(raid.name)}${state.power ? ` · attaquants aguerris +${state.power}` : ""}</span>`;
+  el.hidden = true; void el.offsetWidth; el.hidden = false;
+  SFX.alarm();
+  clearTimeout(showIntro.t); showIntro.t = setTimeout(() => { el.hidden = true; }, REDUCED ? 2500 : 3000);
+}
 function checkRaidProgress() {
   const cur = state.phase === "raid" ? state.current : null;
   if (!cur) { seen = { raid: null, step: 0, table: myTable }; pendingFire.clear(); return; }
@@ -962,6 +1140,7 @@ function checkRaidProgress() {
     queueRaidAnim(raid, seen.step, state.step, clone(tbl(myTable).levels));
   } else if (seen.raid !== cur || seen.table !== myTable) {
     resultShownFor = null; $("result").hidden = true;
+    if (seen.raid !== cur && state.step === 0) showIntro(raid);
   }
   seen = { raid: cur, step: state.step, table: myTable };
 }
@@ -982,11 +1161,11 @@ function renderGiant() {
     const t = tbl(id), lv = t.levels;
     let steps = "";
     if (raid) {
-      const r = resolve(raid, lv);
+      const r = resolve(raid, lv, state.power);
       steps = `<div class="steps">${[0, 1, 2].map((i) => i >= state.step ? "<i></i>" : r.blockedAt >= 0 && i >= r.blockedAt ? `<i class="${i === r.blockedAt ? "block" : ""}"></i>` : `<i class="win"></i>`).join("")}</div>`;
     }
     const fires = new Set();
-    if (raid) { const r = resolve(raid, lv); for (let i = 0; i < state.step; i++) { if (r.blockedAt >= 0 && i >= r.blockedAt) break; fires.add(raid.steps[i][2]); } }
+    if (raid) { const r = resolve(raid, lv, state.power); for (let i = 0; i < state.step; i++) { if (r.blockedAt >= 0 && i >= r.blockedAt) break; fires.add(raid.steps[i][2]); } }
     html += `<div class="mini"><div class="top"><b>Table ${id.slice(1)}${t.name ? " · " + esc(t.name) : ""}</b><span>${trophies(id)} trophées</span></div>
       <svg class="world" viewBox="-395 -95 790 510" aria-hidden="true">${drawWorld(lv, { mini: true, fires })}</svg>${steps}</div>`;
   });
@@ -1007,6 +1186,15 @@ function renderGiant() {
   });
   html += `</tbody></table></div><p class="status">Étoiles gagnées par l'attaquant : 0 = attaque repoussée, 3 = base détruite. Chaque étoile évitée rapporte 10 trophées.</p>`;
 
+  if (state.events.length) {
+    html += `<h2 style="margin-top:18px">Événements</h2><div class="debrief">`;
+    state.events.forEach((ev) => {
+      const e = EVENT_BY_ID[ev.id]; if (!e) return;
+      const gain = ids.filter((id) => (ev.deltas[id] || 0) > 0).length, lossN = ids.filter((id) => (ev.deltas[id] || 0) < 0).length;
+      html += `<article class="panel"><h3>${esc(e.name)}</h3><p class="sub">${esc(e.rule)}</p><p class="why">${gain} table${gain > 1 ? "s" : ""} gagnante${gain > 1 ? "s" : ""} · ${lossN} table${lossN > 1 ? "s" : ""} perdante${lossN > 1 ? "s" : ""}</p></article>`;
+    });
+    html += `</div>`;
+  }
   if (state.played.length) {
     html += `<h2 style="margin-top:18px">Débrief des raids</h2><div class="debrief">`;
     state.played.forEach((rid) => {
@@ -1014,7 +1202,7 @@ function renderGiant() {
       ids.forEach((id) => { const s = res[id] ? res[id].s : 3; if (s < 3) blockedAt[s]++; });
       html += `<article class="panel"><h3>${esc(raid2.name)}</h3><p class="sub">${esc(raid2.intro)}</p><ol>`;
       raid2.steps.forEach(([txt, bl], i) => {
-        html += `<li>${esc(txt)}<br><span class="why">${bl.length ? "Parade : " + esc(bl.map((b) => defLabel(...b)).join(" ou ")) : "Aucune parade : il faut limiter la suite."}</span>${blockedAt[i] ? ` <span class="cnt">· stoppé ici par ${blockedAt[i]} table${blockedAt[i] > 1 ? "s" : ""}</span>` : ""}</li>`;
+        html += `<li>${esc(txt)}<br><span class="why">${bl.length ? "Parade : " + esc(bl.map((b) => reqLabel(b, state.powers[rid] || 0)).join(" ou ")) : "Aucune parade : il faut limiter la suite."}</span>${blockedAt[i] ? ` <span class="cnt">· stoppé ici par ${blockedAt[i]} table${blockedAt[i] > 1 ? "s" : ""}</span>` : ""}</li>`;
       });
       html += `</ol></article>`;
     });
@@ -1034,16 +1222,26 @@ function renderMJ() {
       <div class="actions"><button class="btn gold" id="mj-reveal">Révéler les failles et ouvrir la construction</button></div>`;
   } else if (s.phase === "raid") {
     const raid = RAID_BY_ID[s.current];
-    html += `<p class="sub">${esc(raid.name)} · étape ${Math.min(s.step, 3)} sur 3 révélée. Chaque clic fait avancer l'attaque sur toutes les bases.</p><div class="actions">
+    html += `<p class="sub">${esc(raid.name)}${s.power ? ` · puissance +${s.power}` : ""} · étape ${Math.min(s.step, 3)} sur 3 révélée. Chaque clic fait avancer l'attaque sur toutes les bases.</p><div class="actions">
       ${s.step < 3 ? `<button class="btn red" id="mj-step">Lancer l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>`;
   } else if (s.phase === "build") {
-    html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il frappe toutes les bases en même temps.</p><div class="raid-pick">`;
+    const nextPower = s.cfg.escalate ? Math.floor(s.played.length / 2) : 0;
+    html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il frappe toutes les bases en même temps.${nextPower ? ` Puissance du prochain raid : +${nextPower} niveau${nextPower > 1 ? "x" : ""} exigé${nextPower > 1 ? "s" : ""}.` : ""}</p>
+      <div class="actions"><button class="btn red" id="mj-random" ${s.played.length >= RAIDS.length ? "disabled" : ""}>Raid surprise</button></div><div class="raid-pick">`;
     RAIDS.forEach((r) => {
       const done = s.played.includes(r.id);
       html += `<div class="it ${done ? "done" : ""}"><div class="txt"><b>${esc(r.name)}</b><div>${esc(r.intro)}</div></div>
         ${done ? `<span class="why">Déjà joué</span>` : `<button class="btn red" data-launch="${r.id}">Lancer le raid</button>`}</div>`;
     });
     html += `</div><div class="actions" style="margin-top:6px"><button class="btn plain" id="mj-end">Terminer la partie</button></div>`;
+    html += `</div><div class="panel"><h2>Cartes événement</h2><p class="sub">À tirer entre deux raids. L'effet dépend des défenses de chaque table au moment du tirage.</p>
+      <div class="actions"><button class="btn gold" id="mj-event-random" ${s.events.length >= EVENTS.length ? "disabled" : ""}>Tirer une carte au hasard</button></div><div class="raid-pick">`;
+    EVENTS.forEach((e) => {
+      const done = s.events.some((x) => x.id === e.id);
+      html += `<div class="it ${done ? "done" : ""}"><div class="txt"><b>${esc(e.name)}</b><div>${esc(e.rule)}</div></div>
+        ${done ? `<span class="why">Déjà tirée</span>` : `<button class="btn gold" data-event="${e.id}">Tirer</button>`}</div>`;
+    });
+    html += `</div>`;
   } else {
     html += `<p class="sub">Partie terminée après ${s.played.length} raid${s.played.length > 1 ? "s" : ""}. Le classement et le débrief sont sur l'écran géant.</p>
       <div class="actions"><button class="btn plain" id="mj-reopen">Rouvrir la construction</button></div>`;
@@ -1060,6 +1258,8 @@ function renderMJ() {
     <label for="c-bonus">Gain par faille (€)<input type="number" id="c-bonus" min="0" max="50" value="${s.cfg.bonus}"></label>
     <label for="c-revenue">Revenu après chaque raid (€)<input type="number" id="c-revenue" min="0" max="200" value="${s.cfg.revenue}"></label>
     ${[1, 2, 3].map((k) => `<label for="c-loss${k}">Perte à ${k} étoile${k > 1 ? "s" : ""} (€)<input type="number" id="c-loss${k}" min="0" max="200" value="${s.cfg.loss[k]}"></label>`).join("")}
+    <label for="c-upkeep">Entretien par niveau et par raid (€)<input type="number" id="c-upkeep" min="0" max="20" value="${s.cfg.upkeep}"></label>
+    <label for="c-escalate" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-escalate" ${s.cfg.escalate ? "checked" : ""}> Raids de plus en plus forts</label>
   </div></div>`;
 
   html += `<div class="panel"><h2>Nouvelle partie</h2><p class="sub">Remet la partie au début et vide les bases de toutes les tables.</p><div class="actions">
@@ -1075,12 +1275,22 @@ function renderMJ() {
   on("mj-step", () => { state.step = Math.min(3, state.step + 1); commit(); });
   on("mj-close", () => {
     const rid = state.current, res = {};
-    tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv).stars, lv }; });
+    tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv, state.power).stars, lv }; });
+    state.powers[rid] = state.power;
     state.results[rid] = res; state.played = state.played.concat(rid);
     state.phase = "build"; state.current = null; state.step = 0;
     commit();
   });
-  box.querySelectorAll("[data-launch]").forEach((b) => b.onclick = () => { state.phase = "raid"; state.current = b.dataset.launch; state.step = 0; state.timer = null; commit(); });
+  const launch = (rid) => { state.phase = "raid"; state.current = rid; state.step = 0; state.timer = null; state.power = state.cfg.escalate ? Math.floor(state.played.length / 2) : 0; commit(); };
+  box.querySelectorAll("[data-launch]").forEach((b) => b.onclick = () => launch(b.dataset.launch));
+  on("mj-random", () => { const left = RAIDS.filter((r) => !state.played.includes(r.id)); if (left.length) launch(left[Math.floor(Math.random() * left.length)].id); });
+  const draw = (eid) => {
+    const e = EVENT_BY_ID[eid], deltas = {};
+    tableIds().forEach((id) => { deltas[id] = e.f(tbl(id).levels); });
+    state.events = state.events.concat({ id: eid, deltas }); state.lastEvent = { id: eid, at: Date.now() }; commit();
+  };
+  box.querySelectorAll("[data-event]").forEach((b) => b.onclick = () => draw(b.dataset.event));
+  on("mj-event-random", () => { const left = EVENTS.filter((e) => !state.events.some((x) => x.id === e.id)); if (left.length) draw(left[Math.floor(Math.random() * left.length)].id); });
   box.querySelectorAll("[data-timer]").forEach((b) => b.onclick = () => { state.timer = { end: Date.now() + Number(b.dataset.timer) * 60000 }; commit(); });
   on("mj-timer-stop", () => { state.timer = null; commit(); });
   on("mj-end", () => { state.phase = "end"; state.timer = null; commit(); });
@@ -1104,19 +1314,60 @@ function renderMJ() {
   num("c-bonus", (v) => { state.cfg.bonus = v; });
   num("c-revenue", (v) => { state.cfg.revenue = v; });
   [1, 2, 3].forEach((k) => num("c-loss" + k, (v) => { state.cfg.loss[k] = v; }));
+  num("c-upkeep", (v) => { state.cfg.upkeep = Math.min(20, v); });
+  $("c-escalate").onchange = (e) => { state.cfg.escalate = e.target.checked; commit(); };
 }
-function commit() { flyOk = Date.now(); checkRaidProgress(); renderAll(false); saveState(); }
+function commit() { flyOk = Date.now(); checkRaidProgress(); checkEvent(false); renderAll(false); saveState(); }
 
 // ================= navigation =================
 const VIEWS = ["base", "giant", "mj"];
+const IS_MJ = (() => { try { if (location.hash === "#mj") store.set("clash-mj", "1"); } catch {} return store.get("clash-mj") === "1"; })();
+$("tab-mj").hidden = !IS_MJ;
 function show(v) {
+  if (v === "mj" && !IS_MJ) v = "base";
   VIEWS.forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
   store.set("clash-view", v);
 }
 VIEWS.forEach((v) => $("tab-" + v).onclick = () => show(v));
 function renderAll(sync) { renderBanner(); renderBase(sync); renderGiant(); renderMJ(); }
 
+// ================= décor animé =================
+function renderScenery() {
+  let bg = `<rect x="-395" y="-95" width="790" height="510" fill="url(#g-sea)"/>`;
+  let seed = 3; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  for (let k = 0; k < 34; k++) {
+    const x = -390 + rnd() * 780, y = -90 + rnd() * 500;
+    const [gx, gy] = [(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2];
+    if (gx > -1.2 && gx < 10.2 && gy > -1.2 && gy < 10.6) continue; // pas de vagues sur l'île
+    bg += `<path class="wave" style="animation-delay:${(rnd() * 3).toFixed(2)}s" d="M ${x} ${y} q 7 -5 14 0 q 7 5 14 0" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
+  }
+  const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
+  bg += `<polygon class="foam" points="${P([[c[0][0], c[0][1] - 10], [c[1][0] + 16, c[1][1]], [c[1][0] + 16, c[1][1] + 34], [c[2][0], c[2][1] + 44], [c[3][0] - 16, c[3][1] + 34], [c[3][0] - 16, c[3][1]]])}" fill="none" stroke="#e8f7ff" stroke-width="5" stroke-opacity="0.75" stroke-linejoin="round"/>`;
+  bg += `<g class="boat"><g transform="translate(-340 300)"><path d="M -22 0 L 22 0 L 14 10 L -14 10 Z" fill="#8a5a2b" stroke="#5e3b17"/><line x1="0" y1="0" x2="0" y2="-34" stroke="#5e3b17" stroke-width="2"/><path d="M 1 -32 L 20 -6 L 1 -6 Z" fill="#fffaf0" stroke="#b3a58c"/></g></g>`;
+  $("layer-bg").innerHTML = bg;
+
+  let top = `<g id="tint"><rect x="-395" y="-95" width="790" height="510" fill="rgba(190,30,20,0.22)"/></g>`;
+  [[-300, -60, 1, 0], [60, -40, 0.8, -30], [-120, 360, 1.1, -55]].forEach(([x, y, sc, delay]) => {
+    top += `<g class="cloud" style="animation-delay:${delay}s"><g transform="translate(${x} ${y}) scale(${sc})" opacity="0.9">
+      <ellipse cx="0" cy="0" rx="46" ry="18" fill="#fff"/><ellipse cx="-26" cy="4" rx="26" ry="13" fill="#fff"/><ellipse cx="28" cy="5" rx="30" ry="12" fill="#fff"/><ellipse cx="4" cy="-12" rx="26" ry="15" fill="#fff"/></g></g>`;
+  });
+  $("layer-top").innerHTML = top;
+
+  // employés qui se promènent sur l'allée de devant
+  const walkers = $("layer-walkers");
+  walkers.innerHTML = "";
+  const route = [iso(0.9, 8.3), iso(8.3, 8.3), iso(8.3, 0.9)];
+  [["#2c6ea8", 0], ["#d2452f", 0.3], ["#27ae60", 0.55], ["#8e44ad", 0.8]].forEach(([shirt, off], k) => {
+    const g = document.createElementNS(SVGNS, "g");
+    g.innerHTML = `<ellipse cx="0" cy="2" rx="4.5" ry="2" fill="rgba(0,0,0,0.25)"/><g class="bob" style="animation-delay:${k * 0.1}s"><rect x="-3.5" y="-9" width="7" height="10" rx="3" fill="${shirt}"/><circle cx="0" cy="-12" r="3.6" fill="#f1c27d"/></g>`;
+    walkers.appendChild(g);
+    if (REDUCED) { const p = route[k % 3]; g.setAttribute("transform", `translate(${p[0]} ${p[1]})`); return; }
+    g.animate(route.map((p) => ({ transform: `translate(${p[0]}px, ${p[1]}px)` })), { duration: 22000 + k * 3000, iterations: Infinity, direction: "alternate", delay: -off * 22000, easing: "linear" });
+  });
+}
+
 // ================= démarrage =================
+renderScenery();
 renderSoundBtn();
 seen = { raid: null, step: 0, table: myTable };
 renderAll(true);
@@ -1130,8 +1381,9 @@ show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base")
   db.doc("game/state").onSnapshot((snap) => {
     if (timers.cfg) return;
     state = normState(snap.exists ? snap.data() : null);
-    if (first) { first = false; seen = { raid: state.phase === "raid" ? state.current : null, step: state.step, table: myTable }; }
+    if (first) { seen = { raid: state.phase === "raid" ? state.current : null, step: state.step, table: myTable }; }
     else checkRaidProgress();
+    checkEvent(first); first = false;
     renderAll(false);
   }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
   db.collection("tables").onSnapshot((snap) => {
