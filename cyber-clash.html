@@ -92,6 +92,36 @@ svg.world.raid #layer-walkers { display: none; }
 .delta { font: 400 1.7rem var(--f-display); margin: 0; }
 .delta.plus { color: var(--green); } .delta.minus { color: var(--red); }
 .why.power { color: var(--red); }
+/* alerte de nuit pendant un raid */
+svg.world #layer-bg, svg.world #layer-world { transition: filter 0.8s; }
+svg.world.raid #layer-bg { filter: brightness(0.45) saturate(0.7) hue-rotate(10deg); }
+svg.world.raid #layer-world { filter: brightness(0.62) saturate(0.85); }
+svg.world.raid .win polygon { fill: #ffe27a; }
+svg.world.raid .cloud { opacity: 0.3; transition: opacity 0.8s; }
+svg.world.raid .win { filter: drop-shadow(0 0 3px #ffb300); }
+.beam { animation: sweep 5s ease-in-out infinite alternate; }
+.beam.b2 { animation-duration: 6.5s; animation-delay: -2s; }
+@keyframes sweep { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+.birds { animation: birds 38s linear infinite; }
+@keyframes birds { from { transform: translate(0, 0); } to { transform: translate(760px, -60px); } }
+.flap { animation: flap 0.5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes flap { to { transform: scaleY(0.4); } }
+.twinkle { animation: twinkle 3.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(0.3); } 50% { opacity: 0.9; transform: scale(1); } }
+.sway { animation: sway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+.aura { animation: aura 1.6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes aura { from { opacity: 0.5; transform: scale(0.85); } to { opacity: 1; transform: scale(1.15); } }
+[data-b] .bld { transition: transform 0.18s ease, filter 0.18s ease; }
+[data-b]:hover .bld, [data-b]:focus-visible .bld { transform: translateY(-4px); filter: brightness(1.08) drop-shadow(0 0 5px #fff6c2); }
+/* habillage */
+.crest { width: 54px; height: 60px; flex: none; filter: drop-shadow(0 3px 0 var(--wood-dark)); }
+.brand-row { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.panel { background: linear-gradient(180deg, #fffdf6, #f5e9cf); }
+.pill { background: linear-gradient(180deg, rgba(60, 46, 32, 0.92), rgba(30, 22, 14, 0.92)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 3px 0 rgba(0, 0, 0, 0.25); }
+.tabs button { background: linear-gradient(180deg, #fffdf6, #f1e2c4); }
+.tabs button[aria-selected="true"] { background: linear-gradient(180deg, #ffd35c, #f0b429); }
+.banner { background: linear-gradient(180deg, #6e4620, #4f3113); border: 2px solid #3d260e; }
 svg.world { display: block; width: 100%; height: auto; overflow: visible; }
 svg.world text { font-family: var(--f-display); }
 [data-b] { cursor: pointer; }
@@ -208,9 +238,12 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
 
 <div class="wrap">
   <header class="top">
+    <div class="brand-row">
+    <svg class="crest" viewBox="0 0 54 60" aria-hidden="true"><path d="M27 2 L51 10 V30 C51 45 40 54 27 58 C14 54 3 45 3 30 V10 Z" fill="#f0b429" stroke="#5e3b17" stroke-width="3"/><path d="M27 9 L44 15 V30 C44 41 37 48 27 51 C17 48 10 41 10 30 V15 Z" fill="#2c6ea8"/><rect x="19" y="27" width="16" height="13" rx="2" fill="#fffaf0"/><path d="M22 27 V22 A5 5 0 0 1 32 22 V27" fill="none" stroke="#fffaf0" stroke-width="3"/><circle cx="27" cy="33" r="2" fill="#2c6ea8"/></svg>
     <div class="brand">
       <h1>Cyber Clash</h1>
       <small>Atelier Boisvert SRL · menuiserie de 22 personnes · défendez-la avec les mesures CyFun Small</small>
+    </div>
     </div>
     <nav class="tabs" role="tablist">
       <button id="tab-base" role="tab" aria-selected="true">Ma base</button>
@@ -239,6 +272,7 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
           <defs>
             <linearGradient id="g-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc3e8"/><stop offset="1" stop-color="#2a86bd"/></linearGradient>
             <linearGradient id="g-grass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3d167"/><stop offset="1" stop-color="#76aa42"/></linearGradient>
+            <linearGradient id="g-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7c0" stop-opacity="0.55"/><stop offset="1" stop-color="#fff7c0" stop-opacity="0"/></linearGradient>
             <radialGradient id="g-glow"><stop offset="0" stop-color="#fff6c2" stop-opacity="0.9"/><stop offset="1" stop-color="#fff6c2" stop-opacity="0"/></radialGradient>
           </defs>
           <g id="layer-bg"></g>
@@ -581,7 +615,16 @@ function roof(X, Y, s, h, r, col) {
   return `<polygon points="${P([up(Wc, h), up(N, h), a])}" fill="${shade(col, 0.1)}" ${OUT}/>` +
     `<polygon points="${P([up(N, h), up(E, h), a])}" fill="${shade(col, 0.2)}" ${OUT}/>` +
     `<polygon points="${P([up(Wc, h), up(S, h), a])}" fill="${shade(col, -0.2)}" ${OUT}/>` +
-    `<polygon points="${P([up(S, h), up(E, h), a])}" fill="${col}" ${OUT}/>`;
+    `<polygon points="${P([up(S, h), up(E, h), a])}" fill="${col}" ${OUT}/>` + tiles(up(Wc, h), up(S, h), a) + tiles(up(S, h), up(E, h), a);
+}
+// rangées de tuiles : lignes parallèles au bas du pan de toit
+function tiles(A, B, apex) {
+  let o = "";
+  for (const t of [0.25, 0.5, 0.75]) {
+    const p1 = [A[0] + (apex[0] - A[0]) * t, A[1] + (apex[1] - A[1]) * t], p2 = [B[0] + (apex[0] - B[0]) * t, B[1] + (apex[1] - B[1]) * t];
+    o += `<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="#000" stroke-opacity="0.18" stroke-width="1.2"/>`;
+  }
+  return o;
 }
 function faceR(X, Y, s, u1, u2, t1, t2, fill) {
   const S = [X, Y + s * TH], E = [X + s * TW, Y], p = (u, t) => [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u - t];
@@ -597,7 +640,7 @@ function windowsRow(X, Y, s, n, t1, t2, fill) {
     const u1 = (i + 0.25) / n, u2 = (i + 0.75) / n;
     out += faceR(X, Y, s, u1, u2, t1, t2, fill) + faceL(X, Y, s, u1, u2, t1, t2, shade(fill, -0.25));
   }
-  return out;
+  return `<g class="win">${out}</g>`;
 }
 
 // Chaque bâtiment renvoie son dessin et sa hauteur (pour l'étiquette et le feu).
@@ -626,19 +669,19 @@ function drawBuilding(id, X, Y) {
       const w = (u) => { const A = [X - 0.55 * TW, Y], S = [X, Y + 0.55 * TH]; return [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u]; };
       const w2 = (u) => { const S = [X, Y + 0.55 * TH], E = [X + 0.55 * TW, Y]; return [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u]; };
       return { h: 44, svg: box(X, Y - 6, 0.55, 14, "#d35400") + box(X, Y - 20, 0.32, 16, "#f5b041", "#e59866") +
-        faceR(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#a9d6f5") + faceL(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#7fb3d5") +
+        `<g class="win">${faceR(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#a9d6f5") + faceL(X, Y - 20, 0.32, 0.12, 0.88, 4, 13, "#7fb3d5")}</g>` +
         [w(0.2), w(0.8), w2(0.25), w2(0.8)].map(([x, y]) => `<ellipse cx="${x}" cy="${y - 3}" rx="6" ry="7" fill="#222"/>`).join("") };
     }
     case "pc": return { h: 40, svg: box(X, Y, 0.8, 36, "#f7f7f2", "#27ae60") + windowsRow(X, Y, 0.8, 4, 12, 26, "#7fb3d5") +
       faceL(X, Y, 0.8, 0.46, 0.54, 0, 20, "#6b4423") };
     case "atelier": return { h: 84, svg: box(X, Y, 0.85, 36, "#d9b99b") +
       faceL(X, Y, 0.85, 0.3, 0.7, 0, 26, "#6b4423") + faceL(X, Y, 0.85, 0.3, 0.7, 12, 14, "#4a2f17") +
-      faceR(X, Y, 0.85, 0.15, 0.4, 16, 28, "#9cc3dd") + faceR(X, Y, 0.85, 0.6, 0.85, 16, 28, "#9cc3dd") +
+      `<g class="win">${faceR(X, Y, 0.85, 0.15, 0.4, 16, 28, "#9cc3dd") + faceR(X, Y, 0.85, 0.6, 0.85, 16, 28, "#9cc3dd")}</g>` +
       roof(X, Y, 0.85, 36, 24, "#8b4513") + box(X + 22, Y - 40, 0.09, 30, "#7a4a2a") +
       `<g><circle class="smoke" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d2" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/><circle class="smoke d3" cx="${X + 22}" cy="${Y - 80}" r="6" fill="#d7d7d7"/></g>` };
     case "presta": {
       const E = [X + 0.38 * TW, Y];
-      return { h: 44, svg: box(X, Y, 0.38, 34, "#c8d0d8", "#6c7a89") + faceR(X, Y, 0.38, 0.2, 0.8, 14, 26, "#7fb3d5") +
+      return { h: 44, svg: box(X, Y, 0.38, 34, "#c8d0d8", "#6c7a89") + `<g class="win">${faceR(X, Y, 0.38, 0.2, 0.8, 14, 26, "#7fb3d5")}</g>` +
         `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#fff" stroke-width="6" stroke-linecap="round"/>` +
         `<line x1="${E[0] + 2}" y1="${E[1] - 12}" x2="${E[0] + 52}" y2="${E[1] + 13}" stroke="#d2452f" stroke-width="6" stroke-dasharray="7 7"/>` +
         `<rect x="${E[0] - 2}" y="${E[1] - 16}" width="6" height="18" fill="#4a4a4a"/>` };
@@ -689,6 +732,7 @@ function tower(d, lv, X, Y, pop) {
   s = box(X, Y, 0.22, h, col) + roof(X, Y, 0.22, h, r, shade(col, -0.35));
   if (lv >= 2) s += faceR(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118") + faceL(X, Y, 0.22, 0.3, 0.7, h - 12, h - 5, "#2a2118");
   s += emblem(d, X, Y + 0.22 * TH - Math.min(h * 0.45, 16));
+  if (lv >= 3) s = `<ellipse class="aura" cx="${X}" cy="${Y}" rx="30" ry="15" fill="url(#g-glow)"/>` + s;
   if (lv >= 3) s += `<line x1="${X}" y1="${Y - h - r}" x2="${X}" y2="${Y - h - r - 14}" stroke="#4a3520" stroke-width="2"/><polygon points="${P([[X, Y - h - r - 14], [X + 12, Y - h - r - 10], [X, Y - h - r - 6]])}" fill="#f0b429"/>`;
   s += `<circle cx="${X + 16}" cy="${Y - h + 2}" r="8" fill="#2a2118" stroke="#f0b429" stroke-width="2"/><text x="${X + 16}" y="${Y - h + 6}" font-size="11" text-anchor="middle" fill="#fff">${lv}</text>`;
   return `<g class="${pop ? "pop" : ""}">${s}</g>`;
@@ -738,9 +782,15 @@ const FLOWERS = (() => { let seed = 11; const rnd = () => (seed = (seed * 9301 +
 const TREES = [[0.35, 3], [0.35, 6.1], [3, 0.35], [6.1, 0.35], [8.6, 4.5], [4.5, 8.6], [2.9, 2.9], [6.05, 6.05]];
 function tree(X, Y, k) {
   return `<ellipse cx="${X}" cy="${Y + 2}" rx="12" ry="5" fill="rgba(0,0,0,0.18)"/><rect x="${X - 2.5}" y="${Y - 14}" width="5" height="15" fill="#6b4423"/>` +
-    `<circle cx="${X}" cy="${Y - 22}" r="${12 + (k % 2) * 3}" fill="#3f8f3a" stroke="#2a5e26" stroke-width="1.5"/><circle cx="${X - 4}" cy="${Y - 26}" r="5" fill="#5cb24f"/>`;
+    `<g class="sway" style="animation-delay:${-k * 0.7}s"><circle cx="${X}" cy="${Y - 22}" r="${12 + (k % 2) * 3}" fill="#3f8f3a" stroke="#2a5e26" stroke-width="1.5"/><circle cx="${X + 5}" cy="${Y - 30}" r="${7 + (k % 2) * 2}" fill="#4aa142"/><circle cx="${X - 4}" cy="${Y - 26}" r="5" fill="#6cc25c"/></g>`;
 }
 
+// emprise au sol et hauteur de chaque bâtiment, pour l'ombre portée (soleil en haut à gauche)
+const FOOT = { hq: [0.75, 70], mail: [0.55, 80], srv: [0.6, 60], wifi: [0.42, 40], compta: [0.65, 60], laptop: [0.55, 30], pc: [0.8, 36], atelier: [0.85, 55], presta: [0.38, 34] };
+function castShadow(X, Y, sz, h) {
+  const { N, E, S, Wc } = corners(X, Y, sz), d = [h * 0.55, h * 0.1], m = (p) => [p[0] + d[0], p[1] + d[1]];
+  return `<polygon points="${P([N, m(N), m(E), m(S), S, Wc])}" fill="rgba(20,40,10,0.22)"/>`;
+}
 function drawWorld(levels, o = {}) {
   const fires = o.fires || new Set(), mini = !!o.mini, fw = levels.fw || 0;
   const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
@@ -754,12 +804,25 @@ function drawWorld(levels, o = {}) {
   // chemins
   const road = (a1, a2, b1, b2) => `<polygon points="${P([iso(a1, b1), iso(a2, b1), iso(a2, b2), iso(a1, b2)])}" fill="#d9c08a" opacity="0.85"/>`;
   [3, 6].forEach((v) => { s += road(v - 0.16, v + 0.16, 0.4, 8.6) + road(0.4, 8.6, v - 0.16, v + 0.16); });
+  if (!mini) [3, 6].forEach((v) => {
+    const a = iso(v, 0.4), b = iso(v, 8.6), c = iso(0.4, v), d = iso(8.6, v);
+    s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#bfa36b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>`;
+    s += `<line x1="${c[0]}" y1="${c[1]}" x2="${d[0]}" y2="${d[1]}" stroke="#bfa36b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>`;
+  });
   if (!mini) TUFTS.forEach(([gx, gy]) => { const [X, Y] = iso(gx, gy); s += `<path d="M ${X - 3} ${Y} l 2 -5 l 1 5 l 2 -4 l 1 4" fill="none" stroke="#5f8f34" stroke-width="1.3"/>`; });
   s += wall(fw, "back");
   // parcelles
   BUILDINGS.forEach((b) => {
     const [X, Y] = iso(...PLOT[b.id]);
     s += `<polygon points="${P(Object.values(corners(X, Y, 1.3)))}" fill="#79ab44" stroke="#6c9a3b"/>`;
+    if (!mini) {
+      s += `<polygon points="${P(Object.values(corners(X, Y, 0.98)))}" fill="#cdbf9f" stroke="#a8977a" stroke-width="1.5"/>`;
+      const [gx, gy] = PLOT[b.id];
+      for (const t of [-0.49, 0, 0.49]) {
+        s += `<line x1="${iso(gx + t, gy - 0.98)[0]}" y1="${iso(gx + t, gy - 0.98)[1]}" x2="${iso(gx + t, gy + 0.98)[0]}" y2="${iso(gx + t, gy + 0.98)[1]}" stroke="#b3a383" stroke-width="1"/>`;
+        s += `<line x1="${iso(gx - 0.98, gy + t)[0]}" y1="${iso(gx - 0.98, gy + t)[1]}" x2="${iso(gx + 0.98, gy + t)[0]}" y2="${iso(gx + 0.98, gy + t)[1]}" stroke="#b3a383" stroke-width="1"/>`;
+      }
+    }
     if (!mini && o.sel === b.id) s += `<polygon class="sel-ring" points="${P(Object.values(corners(X, Y, 1.32)))}" fill="rgba(240,180,41,0.18)" stroke="#f0b429" stroke-width="3"/>`;
   });
   // objets triés par profondeur
@@ -768,7 +831,7 @@ function drawWorld(levels, o = {}) {
   BUILDINGS.forEach((b) => {
     const [gx, gy] = PLOT[b.id], [X, Y] = iso(gx, gy), bd = drawBuilding(b.id, X, Y);
     b._h = bd.h;
-    items.push({ d: gx + gy, svg: `<g data-b="${b.id}" ${mini ? "" : `tabindex="0" role="button" aria-label="${esc(b.name)}"`}><g class="bld" id="${mini ? "" : "bld-" + b.id}"><ellipse cx="${X}" cy="${Y + 6}" rx="${TW * 0.7}" ry="${TH * 0.5}" fill="rgba(0,0,0,0.12)"/>${bd.svg}</g>${fires.has(b.id) ? fire(X, Y - bd.h * 0.55) : ""}</g>` });
+    items.push({ d: gx + gy, svg: `<g data-b="${b.id}" ${mini ? "" : `tabindex="0" role="button" aria-label="${esc(b.name)}"`}>${castShadow(X, Y, ...FOOT[b.id])}<g class="bld" id="${mini ? "" : "bld-" + b.id}">${bd.svg}</g>${fires.has(b.id) ? fire(X, Y - bd.h * 0.55) : ""}</g>` });
   });
   DEF_IDS.forEach((d) => {
     const [gx, gy] = towerGrid(d), [X, Y] = iso(gx, gy);
@@ -1344,9 +1407,18 @@ function renderScenery() {
   const c = [iso(0, 0), iso(9, 0), iso(9, 9), iso(0, 9)];
   bg += `<polygon class="foam" points="${P([[c[0][0], c[0][1] - 10], [c[1][0] + 16, c[1][1]], [c[1][0] + 16, c[1][1] + 34], [c[2][0], c[2][1] + 44], [c[3][0] - 16, c[3][1] + 34], [c[3][0] - 16, c[3][1]]])}" fill="none" stroke="#e8f7ff" stroke-width="5" stroke-opacity="0.75" stroke-linejoin="round"/>`;
   bg += `<g class="boat"><g transform="translate(-340 300)"><path d="M -22 0 L 22 0 L 14 10 L -14 10 Z" fill="#8a5a2b" stroke="#5e3b17"/><line x1="0" y1="0" x2="0" y2="-34" stroke="#5e3b17" stroke-width="2"/><path d="M 1 -32 L 20 -6 L 1 -6 Z" fill="#fffaf0" stroke="#b3a58c"/></g></g>`;
+  for (let k = 0; k < 14; k++) {
+    const x = -380 + rnd() * 760, y = -80 + rnd() * 480;
+    const [gx, gy] = [(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2];
+    if (gx > -1.2 && gx < 10.2 && gy > -1.2 && gy < 10.6) continue;
+    bg += `<path class="twinkle" style="animation-delay:${(rnd() * 4).toFixed(2)}s" d="M ${x} ${y - 4} L ${x + 1} ${y - 1} L ${x + 4} ${y} L ${x + 1} ${y + 1} L ${x} ${y + 4} L ${x - 1} ${y + 1} L ${x - 4} ${y} L ${x - 1} ${y - 1} Z" fill="#fff"/>`;
+  }
   $("layer-bg").innerHTML = bg;
-
-  let top = `<g id="tint"><rect x="-395" y="-95" width="790" height="510" fill="rgba(190,30,20,0.22)"/></g>`;
+  const [hx, hy] = iso(...PLOT.hq), [sx, sy] = iso(...PLOT.srv);
+  let top = `<g id="tint"><rect x="-395" y="-95" width="790" height="510" fill="rgba(190,30,20,0.18)"/>
+    <g class="beam" style="transform-origin:${hx}px ${hy - 80}px"><polygon points="${hx},${hy - 80} ${hx - 150},${hy + 260} ${hx - 40},${hy + 280}" fill="url(#g-beam)"/></g>
+    <g class="beam b2" style="transform-origin:${sx}px ${sy - 60}px"><polygon points="${sx},${sy - 60} ${sx + 60},${sy + 280} ${sx + 170},${sy + 250}" fill="url(#g-beam)"/></g></g>`;
+  top += `<g class="birds"><g transform="translate(-330 40)"><path class="flap" d="M -8 0 Q -4 -5 0 0 Q 4 -5 8 0" fill="none" stroke="#2a2118" stroke-width="1.6"/><path class="flap" style="animation-delay:.15s" d="M 10 8 Q 14 3 18 8 Q 22 3 26 8" fill="none" stroke="#2a2118" stroke-width="1.6"/></g></g>`;
   [[-300, -60, 1, 0], [60, -40, 0.8, -30], [-120, 360, 1.1, -55]].forEach(([x, y, sc, delay]) => {
     top += `<g class="cloud" style="animation-delay:${delay}s"><g transform="translate(${x} ${y}) scale(${sc})" opacity="0.9">
       <ellipse cx="0" cy="0" rx="46" ry="18" fill="#fff"/><ellipse cx="-26" cy="4" rx="26" ry="13" fill="#fff"/><ellipse cx="28" cy="5" rx="30" ry="12" fill="#fff"/><ellipse cx="4" cy="-12" rx="26" ry="15" fill="#fff"/></g></g>`;
