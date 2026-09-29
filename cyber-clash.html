@@ -92,6 +92,51 @@ svg.world.raid #layer-walkers { display: none; }
 .delta { font: 400 1.7rem var(--f-display); margin: 0; }
 .delta.plus { color: var(--green); } .delta.minus { color: var(--red); }
 .why.power { color: var(--red); }
+/* situations à contrer */
+.result .card.sit { max-width: 640px; width: 100%; text-align: left; justify-items: stretch; max-height: calc(100vh - 32px); overflow-y: auto; }
+.sit-head { display: flex; gap: 14px; align-items: center; }
+.sit-head svg { width: 88px; height: 88px; flex: none; }
+.sit-head > div { display: grid; gap: 2px; min-width: 0; }
+.name { font: 400 1.35rem var(--f-display); color: var(--red); }
+.sit .sub { color: var(--muted); font-weight: 800; }
+.q { margin: 0; font-weight: 800; font-size: 1.02rem; }
+.mock { border-radius: 12px; padding: 10px 12px; font-size: 0.93rem; text-align: left; }
+.mock p { margin: 0; }
+.mock.mail { background: #fff; border: 1px solid #cfd6de; box-shadow: 0 2px 0 #dfe4ea; }
+.mock.mail .mh { display: grid; gap: 2px; font-size: 0.82rem; color: #555; border-bottom: 1px solid #e3e7ec; padding-bottom: 6px; margin-bottom: 6px; overflow-wrap: anywhere; }
+.flink { display: inline-block; margin-top: 6px; color: #1a5fb4; text-decoration: underline; font-weight: 800; overflow-wrap: anywhere; }
+.mock.alert { background: #fff4d6; border: 2px solid #e0a800; }
+.mock.alert b { display: block; margin-bottom: 2px; }
+.mock.call { background: #eef6ff; border: 2px solid #9cc3e6; }
+.mock .who { font-size: 0.8rem; font-weight: 800; color: var(--blue); }
+.bubble { background: #fff; border-radius: 14px; padding: 6px 10px; margin-top: 6px !important; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08); }
+.mock.ransom { background: #140707; color: #ff5a4f; border: 2px solid #ff5a4f; font-family: ui-monospace, Menlo, monospace; text-align: center; }
+.mock.ransom b { font-size: 1.1rem; letter-spacing: 0.05em; }
+.mock.talk .bubble { border: 2px solid var(--line); }
+.choices { display: grid; gap: 8px; }
+.choices button { text-align: left; font-weight: 800; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--wood); background: #fff; color: var(--ink); cursor: pointer; font-size: 0.95rem; box-shadow: 0 3px 0 var(--line); }
+.choices button:hover:not(:disabled) { background: #fff6dc; }
+.choices button:disabled { cursor: default; opacity: 0.7; }
+.choices button.ok { border-color: var(--green); background: var(--green-bg); opacity: 1; }
+.choices button.ko { border-color: var(--red); background: var(--red-bg); opacity: 1; }
+.countdown { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.countdown i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--gold)); transform-origin: left; animation: countdown linear forwards; }
+@keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+#sit-fb h2 { font-size: 1.6rem; } #sit-fb h2.win { color: var(--blue); } #sit-fb h2.lose { color: var(--red); }
+#sit-fb { display: grid; gap: 6px; justify-items: start; }
+.status-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.st { padding: 4px 10px; border-radius: 999px; font-weight: 800; font-size: 0.82rem; background: var(--line); color: var(--wood-dark); }
+.st.def { background: var(--green-bg); color: var(--green); }
+.st.ref { background: #dbeafe; color: var(--blue); }
+.st.ko { background: var(--red-bg); color: var(--red); }
+.st.wait { background: #fff4d6; color: var(--gold-dark); }
+.giant-sit { margin-top: 12px; grid-template-columns: 150px minmax(0, 1fr); align-items: start; }
+.gs-portrait { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.gs-portrait svg { width: 130px; height: 130px; }
+.gs-body { display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 640px) { .giant-sit { grid-template-columns: minmax(0, 1fr); } }
+.mini .steps i.reflex { background: var(--blue); }
+.mini .steps i.wait { background: var(--gold); }
 /* alerte de nuit pendant un raid */
 svg.world #layer-bg, svg.world #layer-world { transition: filter 0.8s; }
 svg.world.raid #layer-bg { filter: brightness(0.45) saturate(0.7) hue-rotate(10deg); }
@@ -401,37 +446,37 @@ const ALL_OBS = Object.values(OBS).flat();
 
 // Raids : 3 étapes [texte, parades, bâtiment visé]. Une étape est bloquée si UNE parade est atteinte.
 const RAIDS = [
-  { id: "phish", unit: ["#1f6fb2", "@"], name: "Raid hameçonnage",
+  { id: "phish", persona: "phil", unit: ["#1f6fb2", "@"], name: "Raid hameçonnage",
     intro: "Un faux mail « Votre boîte mail est pleine » arrive chez les 22 employés.",
     steps: [
       ["Un employé clique et saisit son mot de passe", [["aware", 2]], "pc"],
       ["L'attaquant se connecte à sa messagerie", [["mfa", 2]], "mail"],
       ["Il envoie de fausses factures à vos clients depuis votre adresse", [["incident", 2]], "hq"]] },
-  { id: "rib", unit: ["#8e44ad", "€"], name: "Raid faux RIB",
+  { id: "rib", persona: "vanessa", unit: ["#8e44ad", "€"], name: "Raid faux RIB",
     intro: "Un fournisseur habituel annonce qu'il « change de banque ».",
     steps: [
       ["La comptabilité reçoit un mail crédible avec un nouveau RIB", [], "compta"],
       ["Le RIB est modifié sans vérification", [["aware", 3]], "compta"],
       ["Un virement de 48 000 € part vers l'escroc", [["incident", 2]], "hq"]] },
-  { id: "ransom", unit: ["#c0392b", "$"], name: "Raid rançongiciel",
+  { id: "ransom", persona: "crypto", unit: ["#c0392b", "$"], name: "Raid rançongiciel",
     intro: "Un groupe criminel scanne Internet à la recherche d'accès à distance ouverts.",
     steps: [
       ["Il devine le mot de passe de l'accès du prestataire", [["access", 3], ["mfa", 3]], "presta"],
       ["Il se propage jusqu'au serveur et à l'atelier", [["patch", 2], ["av", 2]], "srv"],
       ["Tout est chiffré, sauvegardes comprises", [["backup", 2]], "atelier"]] },
-  { id: "laptop", unit: ["#2c3e50", "PC"], name: "Raid vol de portable",
+  { id: "laptop", persona: "pickpocket", unit: ["#2c3e50", "PC"], name: "Raid vol de portable",
     intro: "Le portable du commercial disparaît de sa voiture sur un parking à Liège.",
     steps: [
       ["Le portable est volé", [], "laptop"],
       ["Le voleur lit les devis et le fichier clients", [["device", 2]], "laptop"],
       ["Il ouvre la messagerie restée connectée", [["device", 3], ["incident", 1]], "mail"]] },
-  { id: "wifi", unit: ["#16a085", "Wi"], name: "Raid Wi-Fi",
+  { id: "wifi", persona: "visiteur", unit: ["#16a085", "Wi"], name: "Raid Wi-Fi",
     intro: "Un visiteur patiente dans la salle d'attente avec son ordinateur portable.",
     steps: [
       ["Il se connecte au routeur avec le mot de passe d'usine", [["fw", 1]], "wifi"],
       ["Il atteint le NAS qui n'est plus mis à jour", [["fw", 2], ["patch", 2]], "srv"],
       ["Il copie les plans et la liste des clients", [["av", 3]], "srv"]] },
-  { id: "usb", unit: ["#d35400", "USB"], name: "Raid clé USB",
+  { id: "usb", persona: "semeur", unit: ["#d35400", "USB"], name: "Raid clé USB",
     intro: "Une clé USB « Plans 2027 » traîne sur le parking de l'atelier.",
     steps: [
       ["Un ouvrier la branche sur le PC de la CNC", [["aware", 1]], "atelier"],
@@ -439,6 +484,84 @@ const RAIDS = [
       ["Il se propage et arrête la production", [["fw", 3], ["patch", 3]], "pc"]] },
 ];
 const RAID_BY_ID = Object.fromEntries(RAIDS.map((r) => [r.id, r]));
+
+// Les attaquants, visibles sur la carte et dans les situations
+const PERSONAS = {
+  phil: { name: "Phil l'Hameçonneur", short: "Phil", color: "#1f6fb2", acc: "rod", skin: "#f1c27d" },
+  vanessa: { name: "Vanessa Virement", short: "Vanessa", color: "#8e44ad", acc: "tie", skin: "#e0ac69" },
+  crypto: { name: "Le Crypteur", short: "Crypteur", color: "#c0392b", acc: "mask", skin: "#d8a47a" },
+  pickpocket: { name: "Le Pickpocket", short: "Pickpocket", color: "#2c3e50", acc: "cap", skin: "#f1c27d" },
+  visiteur: { name: "Le Faux Visiteur", short: "Visiteur", color: "#16a085", acc: "laptop", skin: "#c68642" },
+  semeur: { name: "Le Semeur de clés", short: "Semeur", color: "#d35400", acc: "usb", skin: "#f1c27d" },
+};
+
+// Situations à contrer en direct. ok = index de la bonne réaction.
+const SITS = {
+  "phish:0": { scene: { type: "mail", from: "support@micros0ft-365.co", subject: "Votre boîte mail est pleine (98 %)", body: "Cliquez ici dans les 24 heures pour éviter la suppression définitive de vos messages.", link: "https://m365-quota-verif.co/login" },
+    q: "Sophie, à la comptabilité, vous montre ce mail. Que lui conseillez-vous ?",
+    c: ["Cliquer pour vérifier : le logo Microsoft est bien là", "Ne pas cliquer et signaler le mail au responsable cyber", "Transférer le mail à toute l'équipe pour la prévenir"], ok: 1,
+    why: "Expéditeur falsifié (un zéro dans « micros0ft »), urgence artificielle, lien vers un autre domaine. On ne clique pas, on signale. Transférer le mail propage le piège." },
+  "phish:1": { scene: { type: "alert", title: "Connexion inhabituelle", text: "Connexion au compte de Sophie depuis Lagos (Nigeria) à 3 h 12. Mot de passe correct." },
+    q: "Microsoft 365 envoie cette alerte à l'administrateur. Que faites-vous ?",
+    c: ["Ignorer : Sophie est peut-être en voyage", "Attendre lundi pour en parler avec elle", "Changer le mot de passe de Sophie et fermer toutes ses sessions"], ok: 2,
+    why: "Une connexion inhabituelle avec le bon mot de passe signifie que le compte est compromis. Il faut couper l'accès tout de suite, puis activer la double authentification." },
+  "phish:2": { scene: { type: "call", caller: "Garage Lemaire, client", lines: ["Bonjour, j'ai reçu votre facture avec votre nouveau numéro de compte.", "Je peux payer aujourd'hui ?"] },
+    q: "Vous n'avez jamais changé de banque. Que répondez-vous ?",
+    c: ["Lui dire que c'est une fraude, et prévenir tous les clients et la police", "Lui demander de payer la moitié pour tester", "Lui dire de faire comme il veut"], ok: 0,
+    why: "Votre messagerie sert à arnaquer vos clients. Prévenez-les tous, déposez plainte et signalez l'incident sur safeonweb.be." },
+  "rib:1": { scene: { type: "mail", from: "comptabilite@bois-dumont.be", subject: "URGENT : nouvelles coordonnées bancaires", body: "Suite à un changement de banque, merci de mettre à jour notre RIB avant vendredi. Sans cela, nous devrons suspendre les livraisons." },
+    q: "La comptable veut mettre à jour le RIB du fournisseur. Que faites-vous ?",
+    c: ["Répondre au mail pour demander confirmation", "Mettre à jour : c'est l'adresse habituelle du fournisseur", "Appeler le fournisseur au numéro déjà connu, pas celui du mail"], ok: 2,
+    why: "La boîte mail du fournisseur peut être piratée : répondre au mail, c'est demander confirmation à l'escroc. On vérifie par un autre canal, avec un numéro qu'on connaît déjà." },
+  "rib:2": { scene: { type: "call", caller: "Bois Dumont, le vrai fournisseur", lines: ["Bonjour, on n'a toujours pas reçu votre paiement de 48 000 €.", "Nous n'avons jamais changé de banque !"] },
+    q: "Le virement est parti il y a 20 minutes. Que faites-vous ?",
+    c: ["Appeler immédiatement la banque pour bloquer le virement, puis porter plainte", "Envoyer un mail à l'escroc pour réclamer l'argent", "Attendre de voir si l'argent revient"], ok: 0,
+    why: "Chaque minute compte : la banque peut parfois rappeler un virement s'il est signalé très vite. Il faut avoir son numéro sous la main, hors de l'ordinateur." },
+  "ransom:0": { scene: { type: "alert", title: "Journal du pare-feu", text: "4 812 tentatives de connexion en 2 heures sur l'accès bureau à distance du prestataire." },
+    q: "Votre prestataire vous transmet ce rapport. Que décidez-vous ?",
+    c: ["Rien : Internet est toujours bruyant", "Fermer l'accès à distance et appeler le prestataire", "Remplacer le mot de passe par « Boisvert2026! »"], ok: 1,
+    why: "Des milliers d'essais, c'est une attaque par force brute en cours. On ferme la porte d'abord, on discute ensuite. Un mot de passe prévisible ne tiendra pas." },
+  "ransom:1": { scene: { type: "alert", title: "Antivirus du serveur", text: "Outil de vol de mots de passe « Mimikatz » détecté. Action : ignoré (licence expirée)." },
+    q: "Cette alerte apparaît sur l'écran du serveur. Que faites-vous ?",
+    c: ["Redémarrer le serveur pour voir si ça passe", "Isoler le serveur du réseau (débrancher le câble) et appeler à l'aide", "Renouveler la licence de l'antivirus la semaine prochaine"], ok: 1,
+    why: "Un outil de vol de mots de passe sur le serveur signifie qu'un attaquant est déjà à l'intérieur. On isole la machine sans l'éteindre, pour garder les traces, et on déclenche le plan de crise." },
+  "ransom:2": { scene: { type: "ransom", title: "VOS FICHIERS SONT CHIFFRÉS", text: "Payez 3 bitcoins sous 72 heures ou vos données seront publiées." },
+    q: "Cet écran s'affiche sur tous les PC de l'atelier. Que faites-vous ?",
+    c: ["Payer vite pour récupérer les fichiers", "Éteindre et rallumer tous les PC", "Débrancher le réseau, ne pas payer, prévenir le CCB et restaurer les sauvegardes hors ligne"], ok: 2,
+    why: "Payer ne garantit rien et finance le crime. On isole, on signale à safeonweb.be et on restaure depuis une copie hors ligne. Sans cette copie, il n'y a rien à restaurer." },
+  "laptop:1": { scene: { type: "call", caller: "Marc, le commercial", lines: ["On m'a volé mon portable dans la voiture !", "Tous les devis et le fichier clients sont dessus…"] },
+    q: "Quelle est votre première réaction ?",
+    c: ["Lui dire de porter plainte, c'est suffisant", "Changer ses mots de passe et lancer l'effacement à distance du portable", "Attendre : il va peut-être le retrouver"], ok: 1,
+    why: "Il faut couper les accès du portable avant que le voleur ne les utilise. Un disque chiffré aurait protégé le fichier clients (RGPD)." },
+  "laptop:2": { scene: { type: "alert", title: "Nouvelle connexion", text: "La messagerie de Marc vient d'être ouverte depuis un appareil inconnu." },
+    q: "Marc est avec vous au bureau. Que faites-vous ?",
+    c: ["Déconnecter toutes les sessions de Marc et changer son mot de passe", "Envoyer un SMS à Marc pour lui demander si c'est lui", "Rien : c'est sûrement son nouveau téléphone"], ok: 0,
+    why: "La messagerie restée connectée sur le portable volé est une porte ouverte. On ferme toutes les sessions à distance." },
+  "wifi:0": { scene: { type: "talk", text: "Bonjour ! Vous avez le code Wi-Fi ? Et c'est quoi, ce petit boîtier avec les lumières ?" },
+    q: "Un visiteur inconnu attend dans la salle d'attente. Que lui répondez-vous ?",
+    c: ["Lui donner le code du Wi-Fi du personnel, c'est plus simple", "Lui montrer le routeur, il a l'air de s'y connaître", "Refuser poliment : le Wi-Fi interne est réservé au personnel"], ok: 2,
+    why: "Le Wi-Fi du personnel donne accès à tout le réseau interne. Les visiteurs doivent avoir un Wi-Fi séparé, ou rien." },
+  "wifi:1": { scene: { type: "alert", title: "Message du NAS", text: "Connexion administrateur depuis l'appareil « DESKTOP-X7Q » (inconnu) à 10 h 42." },
+    q: "Le NAS vous envoie ce message. Que faites-vous ?",
+    c: ["Redémarrer le NAS", "Couper l'appareil inconnu du réseau et changer le mot de passe admin du NAS", "Attendre le passage du prestataire jeudi"], ok: 1,
+    why: "Un appareil inconnu connecté en administrateur, c'est une intrusion. On le coupe et on change les mots de passe." },
+  "wifi:2": { scene: { type: "alert", title: "Réseau saturé", text: "40 Go envoyés vers Internet depuis ce matin. Internet est très lent." },
+    q: "Tout le monde se plaint de la lenteur. Que faites-vous ?",
+    c: ["Couper la connexion Internet et chercher l'appareil qui envoie ces données", "Appeler l'opérateur pour augmenter le débit", "Attendre la fin du transfert"], ok: 0,
+    why: "Un gros envoi inhabituel vers Internet, c'est souvent un vol de données en cours. On coupe d'abord, on cherche ensuite." },
+  "usb:0": { scene: { type: "talk", text: "Chef, j'ai trouvé une clé « Plans 2027 » sur le parking ! Je la branche sur le PC de la CNC pour voir à qui elle est ?" },
+    q: "Que répondez-vous à l'ouvrier ?",
+    c: ["Oui, c'est pour la rendre à son propriétaire", "Non : on ne la branche nulle part et on la remet au responsable cyber", "Plutôt sur ton PC personnel, c'est plus sûr"], ok: 1,
+    why: "Une clé trouvée est un appât classique. On ne branche jamais une clé inconnue, sur aucun appareil." },
+  "usb:1": { scene: { type: "alert", title: "Contrôle de compte Windows", text: "Voulez-vous autoriser cette application à apporter des modifications à votre appareil ? Éditeur : inconnu." },
+    q: "Cette fenêtre s'ouvre sur le PC de la CNC. Que faites-vous ?",
+    c: ["Oui, sinon la clé ne fonctionnera pas", "Oui, puis lancer l'antivirus juste après", "Non, et prévenir le responsable"], ok: 2,
+    why: "Accepter donne tous les droits au programme. Sans droits d'administrateur au quotidien, cette fenêtre demanderait un mot de passe que l'ouvrier n'a pas." },
+  "usb:2": { scene: { type: "alert", title: "Postes du bureau", text: "Les PC ralentissent et des fichiers changent de nom un à un." },
+    q: "Que faites-vous ?",
+    c: ["Continuer à travailler en attendant", "Formater soi-même tous les PC", "Isoler le PC de la CNC et les postes touchés, puis lancer le plan de crise"], ok: 2,
+    why: "L'infection se propage : on isole au plus vite, et le plan de crise dit qui appeler. Un réseau séparé pour l'atelier aurait contenu l'attaque." },
+};
 
 // Cartes événement : effet calculé pour chaque table au moment du tirage.
 const EVENTS = [
@@ -463,7 +586,7 @@ const EVENTS = [
 ];
 const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 
-const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, upkeep: 2, escalate: true, loss: [0, 10, 25, 45] };
+const DEFAULT_CFG = { tables: 6, start: 60, bonus: 5, revenue: 40, upkeep: 2, escalate: true, reflex: true, react: 40, loss: [0, 10, 25, 45] };
 const INITIAL_STATE = { phase: "reco", current: null, step: 0, power: 0, powers: {}, played: [], results: {}, events: [], lastEvent: null, timer: null, cfg: DEFAULT_CFG };
 
 // ================= utilitaires =================
@@ -499,7 +622,7 @@ function normState(s) {
   o.power = Number(o.power) || 0;
   return o;
 }
-function tbl(id) { const t = tables[id] || {}; return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {} }; }
+function tbl(id) { const t = tables[id] || {}; return { name: t.name || "", flags: t.flags || {}, levels: t.levels || {}, answers: t.answers || {} }; }
 function tableIds() { return Array.from({ length: state.cfg.tables }, (_, i) => "t" + (i + 1)); }
 
 // ================= règles =================
@@ -545,10 +668,17 @@ function canUpgrade(tid, d) {
 // power : les raids plus tardifs exigent des défenses plus hautes (plafond niveau 3).
 const need = (l, power) => Math.min(3, l + (power || 0));
 const reqLabel = (b, power) => defLabel(b[0], need(b[1], power));
-function resolve(raid, levels, power = 0) {
+const reflexOn = () => state.cfg.reflex !== false;
+const sitFor = (raid, i) => (reflexOn() ? SITS[raid.id + ":" + i] : null) || null;
+function stepDefense(raid, i, levels, power) { return raid.steps[i][1].filter(([d, l]) => (levels[d] || 0) >= need(l, power)); }
+function reflexOk(raid, i, answers) { const sit = sitFor(raid, i), a = answers && answers[raid.id + ":" + i]; return !!(sit && a && a.c === sit.ok); }
+const byLabel = (b, power) => b[0] === "reflex" ? "le réflexe de l'équipe" : reqLabel(b, power);
+// une étape est stoppée par une défense suffisante OU par la bonne réaction de l'équipe
+function resolve(raid, levels, power = 0, answers = {}) {
   for (let i = 0; i < raid.steps.length; i++) {
-    const by = raid.steps[i][1].filter(([d, l]) => (levels[d] || 0) >= need(l, power));
+    const by = stepDefense(raid, i, levels, power);
     if (by.length) return { stars: i, blockedAt: i, by };
+    if (reflexOk(raid, i, answers)) return { stars: i, blockedAt: i, by: [["reflex", 0]] };
   }
   return { stars: 3, blockedAt: -1, by: [] };
 }
@@ -556,7 +686,7 @@ function resolve(raid, levels, power = 0) {
 function firesFor(levels) {
   const f = new Set();
   if (state.phase !== "raid" || !RAID_BY_ID[state.current]) return f;
-  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels, state.power);
+  const raid = RAID_BY_ID[state.current], r = resolve(raid, levels, state.power, tbl(myTable).answers);
   for (let i = 0; i < state.step; i++) {
     if (r.blockedAt >= 0 && i >= r.blockedAt) break;
     if (!pendingFire.has(i)) f.add(raid.steps[i][2]);
@@ -1040,7 +1170,7 @@ function renderPanel() {
 }
 
 function raidHTML(raid, levels, step) {
-  const r = resolve(raid, levels, state.power);
+  const r = resolve(raid, levels, state.power, tbl(myTable).answers);
   let html = `<div class="raid"><h2>${esc(raid.name)}</h2><p class="intro">${esc(raid.intro)}</p>${state.power ? `<p class="why power">Attaquants aguerris : +${state.power} niveau${state.power > 1 ? "x" : ""} de défense exigé${state.power > 1 ? "s" : ""}.</p>` : ""}`;
   raid.steps.forEach(([txt, blockers], i) => {
     const shown = i < step && !pendingFire.has(i);
@@ -1048,11 +1178,100 @@ function raidHTML(raid, levels, step) {
     const alt = blockers.length ? "Parade : " + blockers.map((b) => reqLabel(b, state.power)).join(" ou ") : "Aucune parade possible à cette étape.";
     if (!shown) { cls += " off"; line = `<span class="hint">${i < step ? "L'attaque avance…" : "En attente du maître du jeu…"}</span>`; }
     else if (r.blockedAt >= 0 && i > r.blockedAt) { cls += " off"; line = `<span class="res-line">L'attaque s'est arrêtée avant.</span>`; }
-    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">Bloqué par ${esc(r.by.map((b) => reqLabel(b, state.power)).join(" et "))} !</span>`; }
+    else if (i === r.blockedAt) { cls += " block"; line = `<span class="res-line">${r.by[0][0] === "reflex" ? "Contré par le réflexe de l'équipe !" : "Bloqué par " + esc(r.by.map((b) => reqLabel(b, state.power)).join(" et ")) + " !"}</span>`; }
     else { cls += " win"; line = `<span class="res-line">L'attaquant passe.</span><span class="hint">${esc(alt)}</span>`; }
     html += `<div class="${cls}"><span class="k">Étape ${i + 1}</span><span>${esc(txt)}</span>${line}</div>`;
   });
   return html + `</div>`;
+}
+
+// ---------- situations à contrer ----------
+function portrait(pid) {
+  const p = PERSONAS[pid] || PERSONAS.phil, c = p.color, dark = shade(c, -0.35);
+  let acc = "", head = "";
+  const face = `<circle cx="60" cy="54" r="22" fill="${p.skin}" stroke="#2a2118" stroke-width="2"/>
+    <path d="M47 47 L55 50 M73 47 L65 50" stroke="#2a2118" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="52" cy="55" r="2.6" fill="#2a2118"/><circle cx="68" cy="55" r="2.6" fill="#2a2118"/>
+    <path d="M50 64 Q60 72 71 63" fill="none" stroke="#2a2118" stroke-width="2.5" stroke-linecap="round"/>`;
+  const hood = `<path d="M33 66 Q28 24 60 22 Q92 24 87 66 Q84 40 60 36 Q36 40 33 66 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`;
+  if (p.acc === "rod") { head = hood; acc = `<line x1="96" y1="116" x2="112" y2="18" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/><path d="M112 18 L106 70" stroke="#555" stroke-width="1.2"/><path d="M106 70 q-5 6 0 10 q5 -2 3 -6" fill="none" stroke="#999" stroke-width="2"/>`; }
+  if (p.acc === "tie") { head = `<path d="M36 58 Q34 26 60 26 Q86 26 84 58 Q80 40 60 38 Q40 40 36 58 Z" fill="#3b2a1a"/>`; acc = `<polygon points="60,82 54,90 60,112 66,90" fill="#f0b429" stroke="#2a2118"/><rect x="45" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/><rect x="63" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "mask") { head = hood; acc = `<path d="M38 58 Q60 54 82 58 L80 72 Q60 80 40 72 Z" fill="#1a130c"/><text x="60" y="71" text-anchor="middle" font-size="10" fill="${c}" font-family="Nunito, sans-serif" font-weight="800">$$$</text>`; }
+  if (p.acc === "cap") { head = `<path d="M37 48 Q38 28 60 28 Q82 28 83 48 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/><path d="M80 46 L100 50 L82 52 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`; acc = `<rect x="78" y="88" width="26" height="22" rx="4" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><path d="M84 88 Q91 76 98 88" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "laptop") { head = `<path d="M38 50 Q38 28 60 28 Q82 28 82 50 Q76 36 60 36 Q44 36 38 50 Z" fill="#2a2118"/>`; acc = `<polygon points="30,96 76,96 84,116 22,116" fill="#aab4bf" stroke="#2a2118" stroke-width="2"/><circle cx="53" cy="106" r="3" fill="#fff"/><rect x="45" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/><rect x="63" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/>`; }
+  if (p.acc === "usb") { head = `<path d="M34 46 L86 46 L78 38 Q60 20 42 38 Z" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><rect x="30" y="44" width="60" height="5" rx="2" fill="#5e3b17"/>`; acc = `<rect x="84" y="84" width="14" height="26" rx="3" fill="#2c3e50" stroke="#2a2118" stroke-width="2"/><rect x="87" y="76" width="8" height="9" fill="#c9ced4" stroke="#2a2118" stroke-width="1.5"/>`; }
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="58" fill="${shade(c, 0.78)}" stroke="${c}" stroke-width="4"/>
+    <path d="M18 120 Q18 82 60 80 Q102 82 102 120 Z" fill="${c}" stroke="#2a2118" stroke-width="2"/>${face}${head}${acc}</svg>`;
+}
+function sceneHTML(sc) {
+  if (sc.type === "mail") return `<div class="mock mail"><div class="mh"><span>De : <b>${esc(sc.from)}</b></span><span>Objet : <b>${esc(sc.subject)}</b></span></div><p>${esc(sc.body)}</p>${sc.link ? `<span class="flink">${esc(sc.link)}</span>` : ""}</div>`;
+  if (sc.type === "alert") return `<div class="mock alert"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p></div>`;
+  if (sc.type === "call") return `<div class="mock call"><span class="who">Appel entrant · ${esc(sc.caller)}</span>${sc.lines.map((l) => `<p class="bubble">${esc(l)}</p>`).join("")}</div>`;
+  if (sc.type === "ransom") return `<div class="mock ransom"><b>${esc(sc.title)}</b><p>${esc(sc.text)}</p></div>`;
+  return `<div class="mock talk"><p class="bubble">${esc(sc.text)}</p></div>`;
+}
+function choiceOrder(key, n) {
+  let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const idx = Array.from({ length: n }, (_, k) => k);
+  for (let k = n - 1; k > 0; k--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (k + 1); [idx[k], idx[j]] = [idx[j], idx[k]]; }
+  return idx;
+}
+const devicePlays = () => !IS_MJ || store.get("clash-mj-plays") === "1";
+function saveAnswer(key, c) { const m = mine(); m.answers = Object.assign({}, m.answers, { [key]: { c, at: Date.now() } }); saveTable(myTable); renderGiant(); if (!$("view-mj").hidden) renderMJ(); }
+function askSituation(raid, i) {
+  const key = raid.id + ":" + i, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
+  if (!devicePlays()) {
+    // l'appareil du maître du jeu attend la réponse de la table
+    return new Promise((res) => {
+      const t0 = Date.now(), iv = setInterval(() => {
+        const a = tbl(myTable).answers[key];
+        if (a || Date.now() - t0 > (state.cfg.react + 20) * 1000 || state.current !== raid.id) { clearInterval(iv); res(a ? a.c : -1); }
+      }, 400);
+    });
+  }
+  return new Promise((res) => {
+    const el = $("result"), secs = Math.max(10, state.cfg.react || 40);
+    const order = choiceOrder(key, sit.c.length);
+    el.innerHTML = `<div class="card sit"><div class="sit-head">${portrait(raid.persona)}<div><span class="why">${esc(raid.name)} · étape ${i + 1}</span><b class="name">${esc(p.name)}</b><span class="sub">passe à l'attaque. Contrez-le !</span></div></div>
+      ${sceneHTML(sit.scene)}<p class="q">${esc(sit.q)}</p>
+      <div class="countdown" aria-hidden="true"><i style="animation-duration:${secs}s"></i></div><span class="why" id="sit-time">${secs} s</span>
+      <div class="choices">${order.map((k) => `<button data-c="${k}">${esc(sit.c[k])}</button>`).join("")}</div><div id="sit-fb"></div></div>`;
+    el.hidden = false; SFX.alarm();
+    let done = false;
+    const t0 = Date.now();
+    const tick = setInterval(() => {
+      const left = Math.max(0, secs - Math.floor((Date.now() - t0) / 1000));
+      if ($("sit-time")) $("sit-time").textContent = left + " s";
+      if (left === 0) finish(-1);
+    }, 250);
+    function finish(c) {
+      if (done) return; done = true; clearInterval(tick);
+      saveAnswer(key, c);
+      const ok = c === sit.ok;
+      el.querySelectorAll("[data-c]").forEach((b) => { b.disabled = true; const k = Number(b.dataset.c); if (k === sit.ok) b.classList.add("ok"); else if (k === c) b.classList.add("ko"); });
+      const cd = el.querySelector(".countdown"); if (cd) cd.remove(); if ($("sit-time")) $("sit-time").remove();
+      $("sit-fb").innerHTML = `<h2 class="${ok ? "win" : "lose"}">${ok ? "Contré !" : c === -1 ? "Trop tard…" : "Raté…"}</h2><p class="why">${esc(sit.why)}</p><button class="btn gold" id="btn-result">Continuer</button>`;
+      (ok ? SFX.win : SFX.lose)();
+      const close = () => { clearTimeout(auto); el.hidden = true; res(c); };
+      const auto = setTimeout(close, 12000);
+      $("btn-result").onclick = close;
+    }
+    el.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => finish(Number(b.dataset.c)));
+  });
+}
+// état de chaque table pour l'étape en cours (écran géant et maître du jeu)
+function stepStatus(raid, i, id) {
+  const t = tbl(id), r = resolve(raid, t.levels, state.power, t.answers);
+  if (r.blockedAt >= 0 && r.blockedAt < i) return ["", "Déjà stoppé"];
+  if (stepDefense(raid, i, t.levels, state.power).length) return ["def", "Défense"];
+  const sit = sitFor(raid, i);
+  if (!sit) return ["ko", "Passe"];
+  const a = t.answers[raid.id + ":" + i];
+  if (!a) return ["wait", "Réfléchit…"];
+  return a.c === sit.ok ? ["ref", "Contré"] : ["ko", a.c === -1 ? "Trop tard" : "Raté"];
+}
+function statusChips(raid, i) {
+  return `<div class="status-grid">${tableIds().map((id) => { const [cls, txt] = stepStatus(raid, i, id); return `<span class="st ${cls}">T${id.slice(1)} · ${txt}</span>`; }).join("")}</div>`;
 }
 
 let seenEvent = null;
@@ -1070,7 +1289,7 @@ function checkEvent(initial) {
   (d >= 0 ? SFX.coin : SFX.lose)();
 }
 function showResult(raid, levels) {
-  const r = resolve(raid, levels, state.power), loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
+  const r = resolve(raid, levels, state.power, tbl(myTable).answers), loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
   const titles = ["Défense réussie !", "Base touchée", "Base très endommagée", "Base détruite"];
   const el = $("result");
   el.innerHTML = `<div class="card"><span class="why">${esc(raid.name)} · étoiles gagnées par l'attaquant</span>
@@ -1093,6 +1312,13 @@ function unitsSVG(raid, n) {
   const pos = [[0, 0], [-14, 6], [12, 7], [-2, 14], [-18, 18], [14, 20], [2, 26]];
   let out = "";
   for (let k = 0; k < n; k++) out += u(pos[k][0], pos[k][1], k);
+  const p = PERSONAS[raid.persona];
+  if (p) {
+    // le chef de la troupe, plus grand, avec son nom
+    out += `<g transform="translate(24 -2) scale(1.45)"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-5.5" y="-12" width="11" height="14" rx="4" fill="${p.color}" stroke="#1a130c"/><circle cx="0" cy="-15.5" r="5.5" fill="${p.skin}" stroke="#1a130c"/><path d="M-6 -15 Q-6 -23 0 -23 Q6 -23 6 -15 Q3 -19 0 -19 Q-3 -19 -6 -15 Z" fill="${shade(p.color, -0.35)}"/><circle cx="-2" cy="-15" r="1" fill="#1a130c"/><circle cx="2" cy="-15" r="1" fill="#1a130c"/></g></g>`;
+    const nw = 10 + p.short.length * 7.2;
+    out += `<g transform="translate(24 -52)"><rect x="${-nw / 2}" y="-12" width="${nw}" height="16" rx="8" fill="#1a130c" stroke="${p.color}" stroke-width="2"/><text x="0" y="0" text-anchor="middle" font-size="11" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${esc(p.short)}</text></g>`;
+  }
   const w = 12 + glyph.length * 8;
   out += `<line x1="6" y1="-4" x2="6" y2="-44" stroke="#4a3520" stroke-width="2"/><rect x="6" y="-44" width="${w}" height="16" rx="2" fill="${col}" stroke="#1a130c"/><text x="${6 + w / 2}" y="-32" text-anchor="middle" font-size="12" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${glyph}</text>`;
   return out;
@@ -1132,16 +1358,37 @@ function floatText(fx, x, y, txt, col) {
   setTimeout(() => t.remove(), 1700);
 }
 async function playStep(raid, i, levels) {
-  const fx = $("layer-fx"), r = resolve(raid, levels, state.power);
+  const fx = $("layer-fx"), def = stepDefense(raid, i, levels, state.power), sit = sitFor(raid, i);
+  const r = { by: def };
   const [tgx, tgy] = PLOT[raid.steps[i][2]];
   const from = i % 2 ? iso(tgx, 10.4) : iso(10.4, tgy);
   const to = i % 2 ? iso(tgx - 0.2, tgy + 1.05) : iso(tgx + 1.05, tgy - 0.2);
-  const blocked = r.blockedAt === i;
+  const blocked = def.length > 0;
   const g = document.createElementNS(SVGNS, "g");
   g.innerHTML = unitsSVG(raid, 4 + i + state.power); fx.appendChild(g);
   SFX.march();
-  const end = blocked ? [from[0] + (to[0] - from[0]) * 0.6, from[1] + (to[1] - from[1]) * 0.6] : to;
+  const mid = [from[0] + (to[0] - from[0]) * 0.6, from[1] + (to[1] - from[1]) * 0.6];
+  const end = blocked || sit ? mid : to;
   await moveEl(g, from, end, 1500);
+  if (!blocked && sit) {
+    const a = tbl(myTable).answers[raid.id + ":" + i];
+    const c = a ? a.c : await askSituation(raid, i);
+    if (c === sit.ok) {
+      SFX.block();
+      const hitPt = [mid[0], mid[1] - 8];
+      const shield = document.createElementNS(SVGNS, "circle");
+      shield.setAttribute("cx", hitPt[0]); shield.setAttribute("cy", hitPt[1]); shield.setAttribute("r", 34);
+      shield.setAttribute("fill", "rgba(44,110,168,0.25)"); shield.setAttribute("stroke", "#5fb0ff"); shield.setAttribute("stroke-width", "5");
+      shield.style.transformBox = "fill-box"; shield.style.transformOrigin = "center";
+      fx.appendChild(shield);
+      burst(fx, hitPt[0], hitPt[1], ["#5fb0ff", "#ffffff", "#f0b429"], 16, 50, 700);
+      floatText(fx, mid[0], mid[1] - 44, "Contré !", "#2c6ea8");
+      await moveEl(g, mid, from, 1100);
+      shield.remove(); g.remove();
+      return;
+    }
+    await moveEl(g, mid, to, 700);
+  }
   if (blocked) {
     // chaque défense qui bloque tire une salve
     const hitPt = [end[0], end[1] - 8];
@@ -1177,10 +1424,11 @@ function queueRaidAnim(raid, fromStep, toStep, levels) {
   animChain = animChain.then(async () => {
     for (let i = fromStep; i < toStep; i++) {
       if (state.current !== raid.id || myTable !== seen.table) break;
-      const skip = r.blockedAt >= 0 && i > r.blockedAt;
+      const rNow = resolve(raid, levels, state.power, tbl(myTable).answers);
+      const skip = rNow.blockedAt >= 0 && i > rNow.blockedAt;
       if (!skip) await playStep(raid, i, levels);
       pendingFire.delete(i);
-      renderVillage(); renderPanel();
+      renderVillage(); renderPanel(); renderGiant();
     }
     pendingFire.clear();
     if (toStep >= 3 && state.current === raid.id && resultShownFor !== raid.id + myTable) {
@@ -1219,16 +1467,26 @@ function renderBase(sync) {
 function renderGiant() {
   const ids = tableIds(), raid = state.phase === "raid" ? RAID_BY_ID[state.current] : null;
   let html = `<div class="giant-head"><h2>${raid ? esc(raid.name) + " · étape " + Math.min(state.step, 3) + "/3" : state.phase === "reco" ? "Inspection en cours" : state.phase === "build" ? "Construction en cours" : "Partie terminée"}</h2><span class="pill" id="giant-timer" hidden></span></div>`;
+  if (raid && state.step > 0) {
+    const i = state.step - 1, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
+    const pending = ids.some((id) => stepStatus(raid, i, id)[0] === "wait");
+    html += `<div class="panel giant-sit"><div class="gs-portrait">${portrait(raid.persona)}<b class="name">${esc(p.name)}</b></div><div class="gs-body">
+      <span class="why">Étape ${i + 1} · ${esc(raid.steps[i][0])}</span>
+      ${sit ? sceneHTML(sit.scene) + `<p class="q">${esc(sit.q)}</p>` : `<p class="q">Aucune réaction possible à cette étape : seules les défenses comptent.</p>`}
+      ${statusChips(raid, i)}
+      ${sit && !pending ? `<p class="why" style="color:var(--green)">Bonne réaction : ${esc(sit.c[sit.ok])}. ${esc(sit.why)}</p>` : ""}</div></div>`;
+  }
   html += `<div class="minis">`;
   ids.forEach((id) => {
     const t = tbl(id), lv = t.levels;
     let steps = "";
     if (raid) {
-      const r = resolve(raid, lv, state.power);
-      steps = `<div class="steps">${[0, 1, 2].map((i) => i >= state.step ? "<i></i>" : r.blockedAt >= 0 && i >= r.blockedAt ? `<i class="${i === r.blockedAt ? "block" : ""}"></i>` : `<i class="win"></i>`).join("")}</div>`;
+      const r = resolve(raid, lv, state.power, t.answers);
+      const CL = { def: "block", ref: "reflex", ko: "win", wait: "wait", "": "" };
+      steps = `<div class="steps">${[0, 1, 2].map((i) => i >= state.step ? "<i></i>" : `<i class="${CL[stepStatus(raid, i, id)[0]]}"></i>`).join("")}</div>`;
     }
     const fires = new Set();
-    if (raid) { const r = resolve(raid, lv, state.power); for (let i = 0; i < state.step; i++) { if (r.blockedAt >= 0 && i >= r.blockedAt) break; fires.add(raid.steps[i][2]); } }
+    if (raid) { for (let i = 0; i < state.step; i++) { const st = stepStatus(raid, i, id)[0]; if (st === "ko") fires.add(raid.steps[i][2]); else if (st !== "wait") break; } }
     html += `<div class="mini"><div class="top"><b>Table ${id.slice(1)}${t.name ? " · " + esc(t.name) : ""}</b><span>${trophies(id)} trophées</span></div>
       <svg class="world" viewBox="-395 -95 790 510" aria-hidden="true">${drawWorld(lv, { mini: true, fires })}</svg>${steps}</div>`;
   });
@@ -1286,7 +1544,8 @@ function renderMJ() {
   } else if (s.phase === "raid") {
     const raid = RAID_BY_ID[s.current];
     html += `<p class="sub">${esc(raid.name)}${s.power ? ` · puissance +${s.power}` : ""} · étape ${Math.min(s.step, 3)} sur 3 révélée. Chaque clic fait avancer l'attaque sur toutes les bases.</p><div class="actions">
-      ${s.step < 3 ? `<button class="btn red" id="mj-step">Lancer l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>`;
+      ${s.step < 3 ? `<button class="btn red" id="mj-step">Lancer l'étape ${s.step + 1}</button>` : `<button class="btn gold" id="mj-close">Terminer le raid et verser les revenus</button>`}</div>
+      ${s.step > 0 ? `<p class="sub">Réactions des tables à l'étape ${s.step} :</p>${statusChips(raid, s.step - 1)}` : ""}`;
   } else if (s.phase === "build") {
     const nextPower = s.cfg.escalate ? Math.floor(s.played.length / 2) : 0;
     html += `<p class="sub">Les tables construisent. Choisissez le prochain raid quand vous êtes prêt : il frappe toutes les bases en même temps.${nextPower ? ` Puissance du prochain raid : +${nextPower} niveau${nextPower > 1 ? "x" : ""} exigé${nextPower > 1 ? "s" : ""}.` : ""}</p>
@@ -1323,6 +1582,9 @@ function renderMJ() {
     ${[1, 2, 3].map((k) => `<label for="c-loss${k}">Perte à ${k} étoile${k > 1 ? "s" : ""} (€)<input type="number" id="c-loss${k}" min="0" max="200" value="${s.cfg.loss[k]}"></label>`).join("")}
     <label for="c-upkeep">Entretien par niveau et par raid (€)<input type="number" id="c-upkeep" min="0" max="20" value="${s.cfg.upkeep}"></label>
     <label for="c-escalate" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-escalate" ${s.cfg.escalate ? "checked" : ""}> Raids de plus en plus forts</label>
+    <label for="c-reflex" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-reflex" ${s.cfg.reflex !== false ? "checked" : ""}> Situations à contrer</label>
+    <label for="c-react">Temps de réaction (s)<input type="number" id="c-react" min="10" max="180" value="${s.cfg.react}"></label>
+    <label for="c-plays" style="grid-auto-flow:column;align-items:center;justify-content:start;gap:8px"><input type="checkbox" id="c-plays" ${store.get("clash-mj-plays") === "1" ? "checked" : ""}> Cet appareil répond aussi pour une table</label>
   </div></div>`;
 
   html += `<div class="panel"><h2>Nouvelle partie</h2><p class="sub">Remet la partie au début et vide les bases de toutes les tables.</p><div class="actions">
@@ -1338,7 +1600,7 @@ function renderMJ() {
   on("mj-step", () => { state.step = Math.min(3, state.step + 1); commit(); });
   on("mj-close", () => {
     const rid = state.current, res = {};
-    tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv, state.power).stars, lv }; });
+    tableIds().forEach((id) => { const lv = clone(tbl(id).levels); res[id] = { s: resolve(RAID_BY_ID[rid], lv, state.power, tbl(id).answers).stars, lv }; });
     state.powers[rid] = state.power;
     state.results[rid] = res; state.played = state.played.concat(rid);
     state.phase = "build"; state.current = null; state.step = 0;
@@ -1379,6 +1641,9 @@ function renderMJ() {
   [1, 2, 3].forEach((k) => num("c-loss" + k, (v) => { state.cfg.loss[k] = v; }));
   num("c-upkeep", (v) => { state.cfg.upkeep = Math.min(20, v); });
   $("c-escalate").onchange = (e) => { state.cfg.escalate = e.target.checked; commit(); };
+  $("c-reflex").onchange = (e) => { state.cfg.reflex = e.target.checked; commit(); };
+  num("c-react", (v) => { state.cfg.react = Math.min(180, Math.max(10, v)); });
+  $("c-plays").onchange = (e) => { store.set("clash-mj-plays", e.target.checked ? "1" : "0"); };
 }
 function commit() { flyOk = Date.now(); checkRaidProgress(); checkEvent(false); renderAll(false); saveState(); }
 
