@@ -266,6 +266,10 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
 .debrief .panel { gap: 8px; }
 .debrief ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 0.9rem; }
 .debrief .cnt { font-weight: 800; color: var(--green); }
+.mj-access { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+.mj-access form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 800; color: var(--wood-dark); font-size: 0.9rem; }
+.mj-access input { width: 140px; }
+.link-btn { font: 800 0.85rem var(--f-body); background: none; border: 0; color: var(--wood-dark); text-decoration: underline; cursor: pointer; opacity: 0.7; padding: 4px; }
 .empty { margin-top: 16px; padding: 18px; border: 2px dashed var(--wood); border-radius: 14px; color: var(--muted); background: var(--board); font-weight: 700; }
 
 /* maître du jeu */
@@ -337,6 +341,16 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 620px; font-vari
   </section>
 
   <div class="result" id="result" hidden></div>
+
+  <footer class="mj-access" id="mj-access">
+    <button class="link-btn" id="mj-open" type="button">Accès maître du jeu</button>
+    <form id="mj-form" hidden>
+      <label for="mj-code">Code d'accès</label>
+      <input type="text" id="mj-code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn gold" type="submit">Entrer</button>
+      <span class="why" id="mj-err" role="alert"></span>
+    </form>
+  </footer>
 
   <section id="view-mj" hidden>
     <div class="mj" id="mj-body"></div>
@@ -1710,13 +1724,24 @@ function commit() { flyOk = Date.now(); checkRaidProgress(); checkEvent(false); 
 // ================= navigation =================
 const VIEWS = ["base", "giant", "mj"];
 // Le rôle de maître du jeu ne vaut que pour l'onglet ouvert avec #mj (jamais pour les autres onglets).
-const IS_MJ = (() => {
+// Accès maître du jeu : lien terminé par #mj, ou code saisi en bas de page. Valable pour cet onglet seulement.
+const MJ_CODE = "cyfun";
+let IS_MJ = (() => {
   try { localStorage.removeItem("clash-mj"); } catch {}
-  let mj = false;
-  try { if (location.hash === "#mj") sessionStorage.setItem("clash-mj", "1"); mj = sessionStorage.getItem("clash-mj") === "1"; } catch {}
-  return mj || location.hash === "#mj";
+  let mj = location.hash === "#mj";
+  try { if (mj) sessionStorage.setItem("clash-mj", "1"); mj = mj || sessionStorage.getItem("clash-mj") === "1"; } catch {}
+  return mj;
 })();
-$("tab-mj").hidden = !IS_MJ;
+function applyMJ() { $("tab-mj").hidden = !IS_MJ; $("mj-access").hidden = IS_MJ; }
+applyMJ();
+$("mj-open").onclick = () => { $("mj-open").hidden = true; $("mj-form").hidden = false; $("mj-code").focus(); };
+$("mj-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if ($("mj-code").value.trim().toLowerCase() !== MJ_CODE) { $("mj-err").textContent = "Code incorrect."; return; }
+  IS_MJ = true;
+  try { sessionStorage.setItem("clash-mj", "1"); } catch {}
+  applyMJ(); renderMJ(); show("mj");
+});
 function show(v) {
   if (v === "mj" && !IS_MJ) v = "base";
   VIEWS.forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
