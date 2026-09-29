@@ -602,8 +602,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, REDUCED ? 0 : ms));
 let db = null;
 let state = clone(INITIAL_STATE);
 let tables = {};
-let myTable = store.get("clash-table") || "t1";
-let selected = store.get("clash-building") || "hq";
+// Réglages propres à l'onglet : deux onglets du même navigateur peuvent jouer deux tables différentes.
+const tabStore = {
+  get(k) { try { const v = sessionStorage.getItem(k); if (v !== null) return v; } catch {} return store.get(k); },
+  set(k, v) { try { sessionStorage.setItem(k, v); } catch {} store.set(k, v); },
+};
+let myTable = tabStore.get("clash-table") || "t1";
+try { sessionStorage.setItem("clash-table", myTable); } catch {}
+let selected = tabStore.get("clash-building") || "hq";
 let confirmReset = false;
 let justBuilt = null;      // { d, at } pour l'animation de construction
 let pendingFire = new Set(); // étapes en cours d'animation : pas encore de feu
@@ -1064,8 +1070,8 @@ function renderTableSelect() {
   sel.value = myTable;
 }
 $("sel-table").addEventListener("change", (e) => {
-  myTable = e.target.value; store.set("clash-table", myTable);
-  lastGold = null; $("result").hidden = true; renderBase(true);
+  myTable = e.target.value; tabStore.set("clash-table", myTable);
+  lastGold = null; closeModal(); renderBase(true); checkRaidProgress();
 });
 $("in-name").addEventListener("input", (e) => { mine().name = e.target.value; later("n", () => saveTable(myTable)); });
 
@@ -1088,7 +1094,7 @@ function renderVillage() {
 }
 function selectBuilding(id) {
   if (!B_BY_ID[id]) return;
-  selected = id; store.set("clash-building", selected); renderVillage(); renderPanel();
+  selected = id; tabStore.set("clash-building", selected); renderVillage(); renderPanel();
 }
 $("layer-world").addEventListener("click", (e) => { const g = e.target.closest("[data-b]"); if (g) selectBuilding(g.dataset.b); });
 $("layer-world").addEventListener("keydown", (e) => {
@@ -1216,30 +1222,55 @@ function choiceOrder(key, n) {
   for (let k = n - 1; k > 0; k--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (k + 1); [idx[k], idx[j]] = [idx[j], idx[k]]; }
   return idx;
 }
-const devicePlays = () => !IS_MJ || store.get("clash-mj-plays") === "1";
+let currentView = "base";
+// Répond aux situations : toute tablette de table, et l'appareil du maître du jeu quand il est sur « Ma base ».
+const devicePlays = () => !IS_MJ || currentView === "base" || store.get("clash-mj-plays") === "1";
+let modalQ = Promise.resolve(), modalClose = null;
+function openModal(build) {
+  const p = modalQ.then(() => new Promise((res) => {
+    const el = $("result");
+    let closed = false;
+    const close = (v) => { if (closed) return; closed = true; if (modalClose === close) modalClose = null; el.hidden = true; el.innerHTML = ""; res(v); };
+    modalClose = close;
+    build(el, close);
+    el.hidden = false;
+  }));
+  modalQ = p.catch(() => {});
+  return p;
+}
+function closeModal() { if (modalClose) modalClose(undefined); }
 function saveAnswer(key, c) { const m = mine(); m.answers = Object.assign({}, m.answers, { [key]: { c, at: Date.now() } }); saveTable(myTable); renderGiant(); if (!$("view-mj").hidden) renderMJ(); }
+// Attend la réponse de la table : soit elle arrive d'une autre tablette, soit cet appareil pose la question.
 function askSituation(raid, i) {
-  const key = raid.id + ":" + i, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
-  if (!devicePlays()) {
-    // l'appareil du maître du jeu attend la réponse de la table
-    return new Promise((res) => {
-      const t0 = Date.now(), iv = setInterval(() => {
-        const a = tbl(myTable).answers[key];
-        if (a || Date.now() - t0 > (state.cfg.react + 20) * 1000 || state.current !== raid.id) { clearInterval(iv); res(a ? a.c : -1); }
-      }, 400);
-    });
-  }
+  const key = raid.id + ":" + i;
   return new Promise((res) => {
-    const el = $("result"), secs = Math.max(10, state.cfg.react || 40);
+    const t0 = Date.now(), iv = setInterval(() => {
+      const a = tbl(myTable).answers[key];
+      if (a) { clearInterval(iv); res(a.c); return; }
+      if (state.current !== raid.id || myTable !== seen.table) { clearInterval(iv); res(-2); return; }
+      if (devicePlays()) { clearInterval(iv); situationModal(raid, i).then(res); return; }
+      if (Date.now() - t0 > (state.cfg.react + 30) * 1000) { clearInterval(iv); res(-1); }
+    }, 300);
+  });
+}
+function situationModal(raid, i) {
+  const key = raid.id + ":" + i, sit = sitFor(raid, i), p = PERSONAS[raid.persona];
+  return openModal((el, closeM) => {
+    const res = (c) => closeM(c);
+    const secs = Math.max(10, state.cfg.react || 40);
     const order = choiceOrder(key, sit.c.length);
     el.innerHTML = `<div class="card sit"><div class="sit-head">${portrait(raid.persona)}<div><span class="why">${esc(raid.name)} · étape ${i + 1}</span><b class="name">${esc(p.name)}</b><span class="sub">passe à l'attaque. Contrez-le !</span></div></div>
       ${sceneHTML(sit.scene)}<p class="q">${esc(sit.q)}</p>
       <div class="countdown" aria-hidden="true"><i style="animation-duration:${secs}s"></i></div><span class="why" id="sit-time">${secs} s</span>
       <div class="choices">${order.map((k) => `<button data-c="${k}">${esc(sit.c[k])}</button>`).join("")}</div><div id="sit-fb"></div></div>`;
-    el.hidden = false; SFX.alarm();
+    SFX.alarm();
     let done = false;
     const t0 = Date.now();
     const tick = setInterval(() => {
+      if (el.hidden && done) { clearInterval(tick); return; }
+      const other = tbl(myTable).answers[key];
+      if (!done && other) { done = true; clearInterval(tick); res(other.c); return; } // une autre tablette a déjà répondu
+      if (!done && (state.current !== raid.id || myTable !== seen.table)) { done = true; clearInterval(tick); res(-2); return; }
       const left = Math.max(0, secs - Math.floor((Date.now() - t0) / 1000));
       if ($("sit-time")) $("sit-time").textContent = left + " s";
       if (left === 0) finish(-1);
@@ -1252,7 +1283,7 @@ function askSituation(raid, i) {
       const cd = el.querySelector(".countdown"); if (cd) cd.remove(); if ($("sit-time")) $("sit-time").remove();
       $("sit-fb").innerHTML = `<h2 class="${ok ? "win" : "lose"}">${ok ? "Contré !" : c === -1 ? "Trop tard…" : "Raté…"}</h2><p class="why">${esc(sit.why)}</p><button class="btn gold" id="btn-result">Continuer</button>`;
       (ok ? SFX.win : SFX.lose)();
-      const close = () => { clearTimeout(auto); el.hidden = true; res(c); };
+      const close = () => { clearTimeout(auto); res(c); };
       const auto = setTimeout(close, 12000);
       $("btn-result").onclick = close;
     }
@@ -1282,16 +1313,25 @@ function checkEvent(initial) {
   if (initial || Date.now() - le.at > 120000) return;
   const e = EVENT_BY_ID[le.id], ev = state.events.find((x) => x.id === le.id);
   if (!e || !ev) return;
-  const d = ev.deltas[myTable] || 0, el = $("result");
+  const d = ev.deltas[myTable] || 0;
+  if (!devicePlays()) return;
+  openModal((el, close) => {
   el.innerHTML = `<div class="card event"><span class="why">Carte événement</span><h2>${esc(e.name)}</h2><p>${esc(e.text)}</p><p class="why">${esc(e.rule)}</p>
     <p class="delta ${d > 0 ? "plus" : d < 0 ? "minus" : ""}">${d > 0 ? "+" + d + " €" : d < 0 ? "−" + (-d) + " €" : "Aucun effet"}</p><button class="btn gold" id="btn-result">Continuer</button></div>`;
-  el.hidden = false; $("btn-result").onclick = () => { el.hidden = true; };
+  $("btn-result").onclick = () => close();
   (d >= 0 ? SFX.coin : SFX.lose)();
+  });
 }
-function showResult(raid, levels) {
-  const r = resolve(raid, levels, state.power, tbl(myTable).answers), loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
+let deferredResult = null;
+function showResult(raid, levels, frozenStars) {
+  // l'écran du maître du jeu n'est pas interrompu : le bilan attendra son retour sur « Ma base »
+  if (!devicePlays()) { deferredResult = [raid, levels, frozenStars]; return; }
+  deferredResult = null;
+  const r = resolve(raid, levels, state.power, tbl(myTable).answers);
+  if (frozenStars !== undefined) r.stars = frozenStars;
+  const loss = raidLoss(r.stars, levels), halved = loss && resilient(levels);
   const titles = ["Défense réussie !", "Base touchée", "Base très endommagée", "Base détruite"];
-  const el = $("result");
+  openModal((el, close) => {
   el.innerHTML = `<div class="card"><span class="why">${esc(raid.name)} · étoiles gagnées par l'attaquant</span>
     <h2 class="${r.stars === 0 ? "win" : "lose"}">${titles[r.stars]}</h2>
     <div class="big-stars">${[0, 1, 2].map((i) => i < r.stars ? STAR(true, "on").replace("<svg", `<svg style="animation-delay:${0.25 + i * 0.3}s"`) : STAR(false)).join("")}</div>
@@ -1299,9 +1339,9 @@ function showResult(raid, levels) {
     ${halved ? `<p class="why" style="color:var(--green)">Résilience : sauvegardes et plan de crise divisent les pertes par deux.</p>` : ""}
     ${r.stars ? `<p class="why">Il fallait : ${esc(raid.steps.slice(0, r.stars).map((s) => s[1].length ? s[1].map((b) => reqLabel(b, state.power)).join(" ou ") : "").filter(Boolean).join(" ; ") || "limiter les étapes suivantes")}</p>` : ""}
     <button class="btn gold" id="btn-result">Continuer</button></div>`;
-  el.hidden = false;
-  $("btn-result").onclick = () => { el.hidden = true; };
+  $("btn-result").onclick = () => close();
   (r.stars === 0 ? SFX.win : SFX.lose)();
+  });
 }
 
 // ---------- animation des raids ----------
@@ -1373,6 +1413,7 @@ async function playStep(raid, i, levels) {
   if (!blocked && sit) {
     const a = tbl(myTable).answers[raid.id + ":" + i];
     const c = a ? a.c : await askSituation(raid, i);
+    if (c === -2) { g.remove(); return; }
     if (c === sit.ok) {
       SFX.block();
       const hitPt = [mid[0], mid[1] - 8];
@@ -1443,15 +1484,34 @@ function showIntro(raid) {
   SFX.alarm();
   clearTimeout(showIntro.t); showIntro.t = setTimeout(() => { el.hidden = true; }, REDUCED ? 2500 : 3000);
 }
+function firstPending(raid) {
+  for (let i = 0; i < state.step; i++) {
+    const st = stepStatus(raid, i, myTable)[0];
+    if (st === "") return -1;
+    if (st === "wait") return i;
+  }
+  return -1;
+}
 function checkRaidProgress() {
   const cur = state.phase === "raid" ? state.current : null;
-  if (!cur) { seen = { raid: null, step: 0, table: myTable }; pendingFire.clear(); return; }
+  if (!cur) {
+    // raid terminé par le maître du jeu : chaque table voit son bilan, même si les animations n'étaient pas finies
+    const last = state.played[state.played.length - 1], res = last && state.results[last] && state.results[last][myTable];
+    if (seen.raid && seen.raid === last && res && resultShownFor !== last + myTable) {
+      resultShownFor = last + myTable; showResult(RAID_BY_ID[last], res.lv || {}, res.s);
+    }
+    seen = { raid: null, step: 0, table: myTable }; pendingFire.clear(); return;
+  }
   const raid = RAID_BY_ID[cur];
   if (seen.raid === cur && seen.table === myTable && state.step > seen.step) {
     queueRaidAnim(raid, seen.step, state.step, clone(tbl(myTable).levels));
   } else if (seen.raid !== cur || seen.table !== myTable) {
-    resultShownFor = null; $("result").hidden = true;
+    resultShownFor = null; closeModal();
     if (seen.raid !== cur && state.step === 0) showIntro(raid);
+    else {
+      const fp = firstPending(raid);
+      if (fp >= 0) { seen = { raid: cur, step: fp, table: myTable }; queueRaidAnim(raid, fp, state.step, clone(tbl(myTable).levels)); }
+    }
   }
   seen = { raid: cur, step: state.step, table: myTable };
 }
@@ -1649,12 +1709,19 @@ function commit() { flyOk = Date.now(); checkRaidProgress(); checkEvent(false); 
 
 // ================= navigation =================
 const VIEWS = ["base", "giant", "mj"];
-const IS_MJ = (() => { try { if (location.hash === "#mj") store.set("clash-mj", "1"); } catch {} return store.get("clash-mj") === "1"; })();
+// Le rôle de maître du jeu ne vaut que pour l'onglet ouvert avec #mj (jamais pour les autres onglets).
+const IS_MJ = (() => {
+  try { localStorage.removeItem("clash-mj"); } catch {}
+  let mj = false;
+  try { if (location.hash === "#mj") sessionStorage.setItem("clash-mj", "1"); mj = sessionStorage.getItem("clash-mj") === "1"; } catch {}
+  return mj || location.hash === "#mj";
+})();
 $("tab-mj").hidden = !IS_MJ;
 function show(v) {
   if (v === "mj" && !IS_MJ) v = "base";
   VIEWS.forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
-  store.set("clash-view", v);
+  tabStore.set("clash-view", v); currentView = v;
+  if (v === "base" && deferredResult) showResult(...deferredResult);
 }
 VIEWS.forEach((v) => $("tab-" + v).onclick = () => show(v));
 function renderAll(sync) { renderBanner(); renderBase(sync); renderGiant(); renderMJ(); }
@@ -1708,13 +1775,21 @@ renderScenery();
 renderSoundBtn();
 seen = { raid: null, step: 0, table: myTable };
 renderAll(true);
-show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base");
+show(VIEWS.includes(tabStore.get("clash-view")) ? tabStore.get("clash-view") : "base");
 
 (async () => {
   try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
   if (!db) { setStatus("Mode démo local : la partie n'est pas partagée entre les tables sur cet appareil."); return; }
   setStatus("Partie partagée connectée : toutes les tables jouent en direct.");
-  let first = true;
+  let first = true, gotTables = false, resumed = false;
+  const maybeResume = () => {
+    if (resumed || first || !gotTables) return;
+    resumed = true;
+    if (state.phase === "raid" && RAID_BY_ID[state.current]) {
+      const fp = firstPending(RAID_BY_ID[state.current]);
+      if (fp >= 0) { seen = { raid: state.current, step: fp, table: myTable }; checkRaidProgress(); }
+    }
+  };
   db.doc("game/state").onSnapshot((snap) => {
     if (timers.cfg) return;
     state = normState(snap.exists ? snap.data() : null);
@@ -1722,6 +1797,7 @@ show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base")
     else checkRaidProgress();
     checkEvent(first); first = false;
     renderAll(false);
+    maybeResume();
   }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
   db.collection("tables").onSnapshot((snap) => {
     const next = {};
@@ -1729,6 +1805,7 @@ show(VIEWS.includes(store.get("clash-view")) ? store.get("clash-view") : "base")
     if (timers.n && tables[myTable]) next[myTable] = tables[myTable];
     tables = next;
     renderBase(false); renderGiant();
+    gotTables = true; maybeResume();
     if (!$("view-mj").hidden && !(document.activeElement && String(document.activeElement.id).startsWith("c-"))) renderMJ();
   }, () => setStatus("La connexion à la partie s'est interrompue. Rechargez la page."));
 })();
