@@ -8,7 +8,7 @@ import pathlib
 import re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-PAGES = ["cyber-clash.html", "atelier-cyfun-small.html"]
+PAGES = ["cyber-clash.html", "boisvert-grandit.html", "atelier-cyfun-small.html"]
 HEAD = """<!doctype html>
 <html lang="fr">
 <head>

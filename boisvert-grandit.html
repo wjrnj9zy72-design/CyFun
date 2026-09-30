@@ -1,0 +1,788 @@
+<title>Boisvert Grandit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: management game. HUD on top; company scene (isometric, grows with each stage) beside the decision panel; CyFun Small roadmap matrix below. Single deliberate game look (same world as Cyber Clash), colors set explicitly. */
+:root {
+  --sky: #cfe8f4;
+  --sky-deep: #9fd0ea;
+  --board: #fffaf0;
+  --ink: #2a2118;
+  --muted: #6b5d4d;
+  --line: #e2d3b8;
+  --wood: #8a5a2b;
+  --wood-dark: #5e3b17;
+  --gold: #f0b429;
+  --gold-dark: #b7830e;
+  --red: #d2452f;
+  --red-bg: #fbe3dd;
+  --green: #2f8f46;
+  --green-bg: #def2e2;
+  --blue: #2c6ea8;
+  --orange: #d9822b;
+  --orange-bg: #fdebd6;
+  --f-display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --f-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: linear-gradient(var(--sky-deep), var(--sky) 360px); color: var(--ink); font: 16px/1.45 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; padding-block: 16px 60px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; line-height: 1.1; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: 2.1rem; color: #fff; -webkit-text-stroke: 1.5px var(--wood-dark); paint-order: stroke fill; text-shadow: 0 3px 0 var(--wood-dark); }
+h2 { font-size: 1.35rem; color: var(--wood-dark); }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+button { font-family: var(--f-body); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+header.top { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.brand-row { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.brand small { font-weight: 800; color: var(--wood-dark); font-size: 0.85rem; }
+.crest { width: 54px; height: 60px; flex: none; filter: drop-shadow(0 3px 0 var(--wood-dark)); }
+.tabs { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { font-weight: 800; font-size: 0.95rem; padding: 8px 14px; border-radius: 12px; border: 2px solid var(--wood-dark); background: linear-gradient(180deg, #fffdf6, #f1e2c4); color: var(--wood-dark); cursor: pointer; box-shadow: 0 3px 0 var(--wood-dark); }
+.tabs button[aria-selected="true"] { background: linear-gradient(180deg, #ffd35c, #f0b429); }
+
+.hud { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pill { display: inline-grid; gap: 0; padding: 6px 14px; border-radius: 14px; background: linear-gradient(180deg, rgba(60, 46, 32, 0.92), rgba(30, 22, 14, 0.92)); color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; border: 2px solid rgba(255, 255, 255, 0.5); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25); min-width: 0; }
+.pill small { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+.pill b { font-size: 1.1rem; }
+.pill.neg b { color: #ffb4a8; }
+.pill.good b { color: #9ef0a6; }
+.meter { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); overflow: hidden; margin-top: 3px; }
+.meter i { display: block; height: 100%; background: var(--gold); }
+
+.game { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 880px) { .game { grid-template-columns: minmax(0, 1fr); } }
+.stage-box { position: relative; min-width: 0; border-radius: 22px; overflow: hidden; border: 4px solid var(--wood-dark); box-shadow: 0 6px 0 #3d260e; background: linear-gradient(#8fd0ee, #bfe6f5); }
+svg.scene { display: block; width: 100%; height: auto; }
+svg.scene text { font-family: var(--f-display); }
+.stage-label { position: absolute; left: 12px; top: 10px; padding: 4px 12px; border-radius: 999px; background: rgba(42, 33, 24, 0.82); color: #fff; font-weight: 800; font-size: 0.85rem; }
+.pop { animation: pop 0.7s cubic-bezier(0.3, 1.7, 0.5, 1); transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pop { from { transform: scale(0.1); } to { transform: scale(1); } }
+.bob { animation: bob 0.35s ease-in-out infinite alternate; }
+@keyframes bob { to { transform: translateY(-2px); } }
+.sway { animation: sway 3.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+.smoke { animation: smoke 2.6s linear infinite; transform-box: fill-box; transform-origin: center; }
+.smoke.d2 { animation-delay: 1.3s; }
+@keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.75; } to { transform: translate(6px, -36px) scale(1.8); opacity: 0; } }
+.cloud { animation: cloud 70s linear infinite; }
+@keyframes cloud { from { transform: translateX(-460px); } to { transform: translateX(460px); } }
+
+.panel { background: linear-gradient(180deg, #fffdf6, #f5e9cf); border: 3px solid var(--wood-dark); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; box-shadow: 0 5px 0 #3d260e; }
+.sub { color: var(--muted); font-size: 0.92rem; font-weight: 700; }
+.eyebrow { font: 800 0.72rem/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-dark); }
+.btn { font-weight: 800; font-size: 0.95rem; padding: 9px 16px; border-radius: 12px; border: 2px solid rgba(0, 0, 0, 0.25); cursor: pointer; }
+.btn.gold { background: var(--gold); color: var(--wood-dark); box-shadow: 0 3px 0 var(--gold-dark); }
+.btn.green { background: #5cc15f; color: #fff; box-shadow: 0 3px 0 #2f7d33; }
+.btn.plain { background: var(--line); color: var(--wood-dark); }
+.btn.red { background: var(--red); color: #fff; box-shadow: 0 3px 0 #8f2a1b; }
+.btn.small { font-size: 0.85rem; padding: 6px 12px; }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+ul.clean { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+ul.clean li { display: flex; gap: 8px; align-items: baseline; font-weight: 700; }
+ul.clean li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--wood); transform: translateY(-1px); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--wood-dark); white-space: nowrap; }
+.chip.now { background: var(--red-bg); color: var(--red); }
+.chip.soon { background: #fff4d6; color: var(--gold-dark); }
+.chip.ok { background: var(--green-bg); color: var(--green); }
+.chip.fn { color: #fff; }
+
+.shop { display: grid; gap: 12px; }
+.fn-group { display: grid; gap: 6px; }
+.fn-title { font: 400 0.95rem var(--f-display); letter-spacing: 0.03em; display: flex; align-items: center; gap: 8px; }
+.fn-title i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.m-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #fff; border: 2px solid var(--line); }
+.m-row.built { background: var(--green-bg); border-color: #a9d8b5; }
+.m-row.late { border-color: var(--red); }
+.m-row .t { font-weight: 800; }
+.m-row .d { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.m-row .price { font-size: 0.8rem; color: var(--muted); font-weight: 800; font-variant-numeric: tabular-nums; }
+.m-row .side { display: grid; justify-items: end; gap: 4px; max-width: 190px; text-align: right; }
+.fn-group summary { list-style-position: inside; }
+.cap { display: flex; gap: 4px; align-items: center; font-weight: 800; }
+.cap i { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--wood); background: var(--gold); }
+.cap i.used { background: #fff; }
+.grow { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 12px; border-radius: 12px; background: #e8f3ff; border: 2px solid #b6d4f2; }
+.grow p { font-weight: 700; font-size: 0.9rem; min-width: 0; flex: 1 1 220px; }
+
+.event { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: #fff; border: 2px solid var(--line); }
+.event.threat { border-color: #f0b3a9; }
+.event.opp { border-color: #b6d4f2; }
+.ev-head { display: flex; gap: 12px; align-items: center; }
+.ev-head svg { width: 72px; height: 72px; flex: none; }
+.ev-head > div { display: grid; gap: 2px; min-width: 0; }
+.cover { display: grid; gap: 4px; }
+.cover span { font-weight: 800; font-size: 0.9rem; }
+.cover .y { color: var(--green); } .cover .n { color: var(--red); }
+.outcome { font: 400 1.25rem var(--f-display); }
+.outcome.good { color: var(--green); } .outcome.bad { color: var(--red); } .outcome.mid { color: var(--orange); }
+.lesson { font-size: 0.88rem; font-weight: 700; color: var(--muted); border-left: 4px solid var(--gold); padding-left: 10px; }
+
+table.ledger { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-weight: 800; }
+.ledger td { padding: 6px 4px; border-bottom: 2px solid var(--line); }
+.ledger td:last-child { text-align: right; }
+.ledger tr.total td { border-bottom: 0; font-size: 1.1rem; }
+.plus { color: var(--green); } .minus { color: var(--red); }
+
+.roadmap-box { margin-top: 16px; }
+.rm-scroll { overflow-x: auto; background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; box-shadow: 0 5px 0 #3d260e; }
+table.rm { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.88rem; }
+.rm th, .rm td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+.rm th { font: 400 0.82rem var(--f-display); color: var(--muted); letter-spacing: 0.03em; }
+.rm th.cur { color: var(--wood-dark); background: #fff1c7; }
+.rm td.cur { background: #fff8e0; }
+.rm td.l, .rm th.l { text-align: left; font-weight: 800; }
+.rm td.l small { display: block; font-weight: 700; color: var(--muted); font-size: 0.72rem; }
+.dot { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.72rem; font-weight: 800; }
+.dot.req { border: 2px dashed var(--wood); color: var(--wood); }
+.dot.on { background: var(--green); color: #fff; }
+.dot.lateon { background: var(--orange); color: #fff; }
+.dot.miss { background: var(--red); color: #fff; }
+.legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.82rem; font-weight: 700; color: var(--wood-dark); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+.start { max-width: 640px; margin: 20px auto 0; }
+.start label { display: grid; gap: 4px; font-weight: 800; font-size: 0.85rem; color: var(--wood-dark); }
+select, input[type="text"] { font: 700 1rem var(--f-body); color: var(--ink); background: #fff; border: 2px solid var(--wood); border-radius: 10px; padding: 7px 10px; }
+.start .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.start input[type="text"] { width: 240px; max-width: 100%; }
+
+.board-box { margin-top: 16px; background: var(--board); border: 3px solid var(--wood-dark); border-radius: 18px; overflow-x: auto; box-shadow: 0 5px 0 #3d260e; }
+table.rank { border-collapse: collapse; width: 100%; min-width: 720px; font-variant-numeric: tabular-nums; }
+.rank th, .rank td { padding: 9px 12px; border-bottom: 2px solid var(--line); text-align: center; font-weight: 700; }
+.rank th { font: 400 0.85rem var(--f-display); color: var(--muted); letter-spacing: 0.03em; }
+.rank td.l, .rank th.l { text-align: left; }
+.rank tr:last-child td { border-bottom: 0; }
+.rank .pos { font: 400 1.25rem var(--f-display); color: var(--wood); }
+.st { padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 800; }
+.st.run { background: #fff4d6; color: var(--gold-dark); }
+.st.done { background: var(--green-bg); color: var(--green); }
+.st.ko { background: var(--red-bg); color: var(--red); }
+.empty { margin-top: 16px; padding: 18px; border: 2px dashed var(--wood); border-radius: 14px; color: var(--muted); background: var(--board); font-weight: 700; }
+.status { margin-top: 8px; font-size: 0.82rem; font-weight: 700; color: var(--wood-dark); min-height: 1.2em; }
+.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 800; }
+.big { font: 400 2.2rem var(--f-display); color: var(--wood-dark); }
+.big.bad { color: var(--red); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand-row">
+      <svg class="crest" viewBox="0 0 54 60" aria-hidden="true"><path d="M27 2 L51 10 V30 C51 45 40 54 27 58 C14 54 3 45 3 30 V10 Z" fill="#f0b429" stroke="#5e3b17" stroke-width="3"/><path d="M27 9 L44 15 V30 C44 41 37 48 27 51 C17 48 10 41 10 30 V15 Z" fill="#27ae60"/><path d="M17 42 V34 M24 42 V29 M31 42 V24 M38 42 V19" stroke="#fffaf0" stroke-width="4" stroke-linecap="round"/></svg>
+      <div class="brand">
+        <h1>Boisvert Grandit</h1>
+        <small>Du garage à la PME de 50 personnes : faites grandir la cybersécurité avec l'entreprise, sur la base de CyFun Small</small>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-game" role="tab" aria-selected="true">Mon entreprise</button>
+      <button id="tab-rank" role="tab" aria-selected="false">Classement</button>
+    </nav>
+  </header>
+  <div class="status" id="status"></div>
+
+  <section id="view-game">
+    <div id="start" class="panel start" hidden></div>
+    <div id="play" hidden>
+      <div class="hud" id="hud"></div>
+      <div class="game">
+        <div class="stage-box">
+          <svg class="scene" id="scene" viewBox="-300 -150 600 450" role="img" aria-label="L'entreprise et ses protections">
+            <g id="layer-bg"></g><g id="layer-world"></g><g id="layer-walkers"></g><g id="layer-top"></g>
+          </svg>
+          <span class="stage-label" id="stage-label"></span>
+        </div>
+        <aside class="panel" id="panel" aria-live="polite"></aside>
+      </div>
+      <div class="roadmap-box">
+        <h2>Feuille de route CyFun Small</h2>
+        <p class="sub" style="margin-top:4px">Quelle mesure est attendue à quel palier, et quand vous l'avez mise en place.</p>
+        <div class="rm-scroll" style="margin-top:10px" id="roadmap"></div>
+        <div class="legend">
+          <span><span class="dot req">!</span>Attendue à ce palier</span>
+          <span><span class="dot on">✓</span>En place à temps</span>
+          <span><span class="dot lateon">✓</span>En place avec retard</span>
+          <span><span class="dot miss">✗</span>Manquante alors qu'attendue</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-rank" hidden>
+    <div id="rank-body"></div>
+  </section>
+</div>
+
+<script>
+// ================= contenu =================
+const STAGES = [
+  { name: "Le garage", people: 1, margin: 12, size: 1,
+    story: "Vous créez l'Atelier Boisvert dans votre garage : des meubles sur mesure, un site vitrine et beaucoup d'enthousiasme.",
+    assets: ["Un ordinateur portable", "Une boîte mail professionnelle", "La banque en ligne", "Un site vitrine"] },
+  { name: "Les premiers employés", people: 5, margin: 30, size: 2,
+    story: "Les commandes affluent. Vous louez un petit bureau et embauchez quatre personnes.",
+    assets: ["Cinq postes de travail", "Un NAS pour les fichiers partagés", "Un compte pour chaque employé", "Un comptable externe"] },
+  { name: "L'atelier", people: 12, margin: 70, size: 3.5,
+    story: "Vous ouvrez un vrai atelier avec une machine à commande numérique et une équipe commerciale sur la route.",
+    assets: ["Une machine CNC reliée au réseau", "Un Wi-Fi pour le personnel et les visiteurs", "Un prestataire informatique avec accès à distance", "Des portables et smartphones en déplacement"] },
+  { name: "La PME", people: 25, margin: 140, size: 6,
+    story: "25 personnes, une boutique en ligne et du télétravail : Boisvert est devenue une vraie PME.",
+    assets: ["Une boutique en ligne", "Des données clients (RGPD)", "Le télétravail", "Un logiciel de gestion dans le cloud"] },
+  { name: "Le fournisseur industriel", people: 50, margin: 240, size: 10,
+    story: "Un grand client industriel, lui-même soumis à NIS2, vous choisit comme fournisseur. Ses exigences de sécurité deviennent les vôtres.",
+    assets: ["Un second hall de production", "Des échanges de données avec le client", "Des dizaines de sous-traitants"] },
+];
+
+// req = palier à partir duquel CyFun Small attend la mesure ; from = palier où elle devient possible
+const MEASURES = [
+  { id: "resp", fn: "Gouverner", req: 2, base: 1.0, name: "Nommer un responsable cybersécurité", text: "Une personne pilote le sujet, même à temps partiel. +1 chantier par semestre." },
+  { id: "policy", fn: "Gouverner", req: 4, base: 1.5, needs: ["resp"], name: "Politique de sécurité validée par la direction", text: "Quelques pages : règles, priorités et responsabilités." },
+  { id: "suppliers", fn: "Gouverner", req: 3, base: 1.0, from: 2, name: "Clauses de sécurité pour les fournisseurs", text: "Accès, obligations et incidents dans les contrats du prestataire IT et des sous-traitants." },
+  { id: "ciso", fn: "Gouverner", req: 5, base: 4.0, from: 4, name: "CISO à temps partagé (CISOaaS)", text: "Un expert pilote la feuille de route et prépare les audits. +1 chantier, dégâts réduits." },
+  { id: "inv", fn: "Identifier", req: 2, base: 0.8, name: "Inventaire du matériel, des logiciels et des comptes", text: "Savoir ce qu'on a, où, et qui y a accès." },
+  { id: "updates", fn: "Protéger", req: 1, base: 0.3, name: "Mises à jour automatiques", text: "Systèmes, logiciels, routeur et NAS." },
+  { id: "av", fn: "Protéger", req: 1, base: 0.5, name: "Antivirus sur tous les appareils", text: "Actif et à jour, partout." },
+  { id: "mfa", fn: "Protéger", req: 1, base: 0.4, name: "Double authentification (MFA)", text: "Messagerie, banque, accès à distance." },
+  { id: "backup", fn: "Protéger", req: 1, base: 1.0, name: "Sauvegardes avec une copie hors ligne", text: "Automatiques, dont une copie déconnectée." },
+  { id: "accounts", fn: "Protéger", req: 2, base: 0.6, from: 2, name: "Comptes personnels, sans droits admin au quotidien", text: "Un compte par personne, désactivé le jour du départ." },
+  { id: "aware", fn: "Protéger", req: 2, base: 0.8, from: 2, name: "Sensibilisation du personnel", text: "Phishing, mots de passe, signalement sans reproche." },
+  { id: "network", fn: "Protéger", req: 3, base: 1.0, from: 3, name: "Pare-feu et Wi-Fi invités séparé", text: "Mots de passe d'usine changés, visiteurs isolés." },
+  { id: "mobile", fn: "Protéger", req: 3, base: 0.6, from: 2, name: "Portables et smartphones chiffrés", text: "Code de verrouillage, disque chiffré, effacement à distance." },
+  { id: "segment", fn: "Protéger", req: 4, base: 2.0, from: 3, name: "Réseau de production séparé", text: "L'atelier et ses machines isolés du bureau." },
+  { id: "monitor", fn: "Détecter", req: 4, base: 2.0, from: 3, name: "Surveillance des alertes et des journaux", text: "Quelqu'un regarde les alertes et agit." },
+  { id: "irp", fn: "Répondre", req: 3, base: 0.8, name: "Plan de réaction aux incidents", text: "Qui appeler, quoi faire, contacts hors ligne. Dégâts réduits." },
+  { id: "restore", fn: "Restaurer", req: 4, base: 0.6, needs: ["backup"], name: "Tests de restauration", text: "Vérifier chaque trimestre qu'on sait tout récupérer." },
+];
+const MB = Object.fromEntries(MEASURES.map((m) => [m.id, m]));
+const FNS = ["Gouverner", "Identifier", "Protéger", "Détecter", "Répondre", "Restaurer"];
+const FN_COLOR = { Gouverner: "#d49a12", Identifier: "#2c6ea8", Protéger: "#27ae60", Détecter: "#8e44ad", Répondre: "#e67e22", Restaurer: "#16a085" };
+
+const PERSONAS = {
+  phil: { name: "Phil l'Hameçonneur", short: "Phil", color: "#1f6fb2", acc: "rod", skin: "#f1c27d" },
+  vanessa: { name: "Vanessa Virement", short: "Vanessa", color: "#8e44ad", acc: "tie", skin: "#e0ac69" },
+  crypto: { name: "Le Crypteur", short: "Crypteur", color: "#c0392b", acc: "mask", skin: "#d8a47a" },
+  pickpocket: { name: "Le Pickpocket", short: "Pickpocket", color: "#2c3e50", acc: "cap", skin: "#f1c27d" },
+  visiteur: { name: "Le Faux Visiteur", short: "Visiteur", color: "#16a085", acc: "laptop", skin: "#c68642" },
+  semeur: { name: "Le Semeur de clés", short: "Semeur", color: "#d35400", acc: "usb", skin: "#f1c27d" },
+};
+
+// Les 10 semestres : la même séquence pour toutes les tables, pour comparer au débrief.
+const PERIODS = [
+  { threat: { icon: "lock", title: "Mot de passe volé", text: "Vous aviez réutilisé le mot de passe de votre messagerie sur un site marchand. Le site est piraté : votre mot de passe circule.", protect: ["mfa"], base: 3, lesson: "La double authentification rend un mot de passe volé inutile." } },
+  { threat: { icon: "disk", title: "Le disque lâche", text: "Votre portable ne démarre plus. Devis, factures et plans étaient dessus.", protect: ["backup"], base: 4, lesson: "Une sauvegarde régulière, avec une copie hors ligne, transforme une catastrophe en contretemps." } },
+  { threat: { persona: "phil", title: "Hameçonnage", text: "Un faux mail « colis en attente » : une employée saisit son mot de passe sur un faux site.", protect: ["aware", "mfa"], base: 5, lesson: "Des employés formés repèrent le piège ; la double authentification limite les dégâts s'ils tombent dedans." } },
+  { threat: { persona: "pickpocket", title: "L'ancien employé", text: "Un employé parti fâché se connecte encore au NAS avec le compte partagé et efface des dossiers.", protect: ["accounts", "inv"], base: 5, lesson: "Un compte par personne, un inventaire des accès, et on désactive le jour du départ." },
+    opp: { title: "Un client demande un interlocuteur", text: "Un client important veut savoir qui s'occupe de la sécurité chez vous avant de signer.", need: ["resp"], win: { bonus: 6 }, lose: { conf: -6 }, winText: "Contrat signé : +6 k€ de marge par semestre.", loseText: "Personne à désigner : le client hésite, votre crédibilité en prend un coup." } },
+  { threat: { persona: "pickpocket", title: "Portable volé", text: "Le portable d'un commercial disparaît de sa voiture, avec le fichier clients.", protect: ["mobile", "irp"], base: 8, lesson: "Un disque chiffré rend les données illisibles ; le plan d'incident dit quoi couper tout de suite." } },
+  { threat: { persona: "vanessa", title: "Faux RIB", text: "Un « fournisseur » annonce un changement de banque. La comptabilité met à jour le RIB et paie.", protect: ["aware", "irp"], base: 10, lesson: "On vérifie tout changement de RIB par téléphone, au numéro connu. Et on sait qui appeler à la banque." },
+    opp: { title: "L'assurance cyber", text: "Un assureur propose une police cyber, à condition d'avoir un plan de réaction et des sauvegardes.", need: ["irp", "backup"], win: { treso: 6 }, lose: { treso: -4 }, winText: "Prime réduite : +6 k€.", loseText: "Prime majorée faute de garanties : −4 k€." } },
+  { threat: { persona: "crypto", title: "Rançongiciel", text: "Des criminels entrent par l'accès à distance du prestataire, se propagent et chiffrent tout.", protect: ["mfa", "updates", "suppliers", "monitor", "backup"], base: 20, recover: true, lesson: "Il faut plusieurs couches : accès protégés, systèmes à jour, prestataire encadré, alertes surveillées. Et des sauvegardes testées pour repartir." } },
+  { threat: { persona: "visiteur", title: "Fuite de données clients", text: "La base clients de la boutique en ligne est copiée et mise en vente.", protect: ["accounts", "policy", "monitor"], base: 12, conf: 8, lesson: "Des droits limités, des règles claires et une surveillance active. Une fuite, c'est aussi une notification RGPD et une réputation abîmée." },
+    opp: { title: "Subvention régionale", text: "La Région finance les projets cyber des PME qui ont désigné un responsable.", need: ["resp"], win: { treso: 15 }, lose: {}, winText: "Dossier accepté : +15 k€.", loseText: "Dossier refusé : pas de responsable désigné." } },
+  { threat: { persona: "vanessa", title: "Attaque par un sous-traitant", text: "Un sous-traitant piraté envoie une « mise à jour » piégée vers vos machines de production.", protect: ["suppliers", "segment", "monitor"], base: 25, lesson: "Les fournisseurs font partie de votre surface d'attaque : exigences contractuelles, réseau séparé, détection." },
+    opp: { title: "L'audit du grand client", text: "Votre client, soumis à NIS2, audite ses fournisseurs sur la base de CyFun.", needMaturity: 80, win: { bonus: 40, conf: 10 }, lose: { conf: -15, bonus: -20 }, winText: "Audit réussi : fournisseur référencé, +40 k€ de marge par semestre.", loseText: "Audit échoué : volumes réduits (−20 k€ par semestre) et confiance entamée." } },
+  { threat: { persona: "semeur", title: "Clé USB piégée", text: "Une clé USB trouvée sur le parking est branchée sur un poste de l'atelier.", protect: ["aware", "av", "segment"], base: 18, lesson: "Réflexes, antivirus, et une production isolée qui contient l'attaque." } },
+];
+
+const TW = 84, TH = 42; // taille d'une case
+const iso = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2];
+const P = (a) => a.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]
+    .map((v) => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f));
+  return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+const OUT = 'stroke="#2a2118" stroke-opacity="0.45" stroke-width="1.2" stroke-linejoin="round"';
+function corners(X, Y, s) { return { N: [X, Y - s * TH], E: [X + s * TW, Y], S: [X, Y + s * TH], Wc: [X - s * TW, Y] }; }
+const up = (p, h) => [p[0], p[1] - h];
+function box(X, Y, s, h, col, top) {
+  const { N, E, S, Wc } = corners(X, Y, s);
+  return `<polygon points="${P([Wc, S, up(S, h), up(Wc, h)])}" fill="${shade(col, -0.28)}" ${OUT}/>` +
+    `<polygon points="${P([S, E, up(E, h), up(S, h)])}" fill="${shade(col, -0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), up(S, h), up(Wc, h)])}" fill="${top || shade(col, 0.18)}" ${OUT}/>`;
+}
+function roof(X, Y, s, h, r, col) {
+  const { N, E, S, Wc } = corners(X, Y, s), a = [X, Y - h - r];
+  return `<polygon points="${P([up(Wc, h), up(N, h), a])}" fill="${shade(col, 0.1)}" ${OUT}/>` +
+    `<polygon points="${P([up(N, h), up(E, h), a])}" fill="${shade(col, 0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(Wc, h), up(S, h), a])}" fill="${shade(col, -0.2)}" ${OUT}/>` +
+    `<polygon points="${P([up(S, h), up(E, h), a])}" fill="${col}" ${OUT}/>` + tiles(up(Wc, h), up(S, h), a) + tiles(up(S, h), up(E, h), a);
+}
+// rangées de tuiles : lignes parallèles au bas du pan de toit
+function tiles(A, B, apex) {
+  let o = "";
+  for (const t of [0.25, 0.5, 0.75]) {
+    const p1 = [A[0] + (apex[0] - A[0]) * t, A[1] + (apex[1] - A[1]) * t], p2 = [B[0] + (apex[0] - B[0]) * t, B[1] + (apex[1] - B[1]) * t];
+    o += `<line x1="${p1[0].toFixed(1)}" y1="${p1[1].toFixed(1)}" x2="${p2[0].toFixed(1)}" y2="${p2[1].toFixed(1)}" stroke="#000" stroke-opacity="0.18" stroke-width="1.2"/>`;
+  }
+  return o;
+}
+function faceR(X, Y, s, u1, u2, t1, t2, fill) {
+  const S = [X, Y + s * TH], E = [X + s * TW, Y], p = (u, t) => [S[0] + (E[0] - S[0]) * u, S[1] + (E[1] - S[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function faceL(X, Y, s, u1, u2, t1, t2, fill) {
+  const A = [X - s * TW, Y], S = [X, Y + s * TH], p = (u, t) => [A[0] + (S[0] - A[0]) * u, A[1] + (S[1] - A[1]) * u - t];
+  return `<polygon points="${P([p(u1, t1), p(u2, t1), p(u2, t2), p(u1, t2)])}" fill="${fill}"/>`;
+}
+function windowsRow(X, Y, s, n, t1, t2, fill) {
+  let out = "";
+  for (let i = 0; i < n; i++) {
+    const u1 = (i + 0.25) / n, u2 = (i + 0.75) / n;
+    out += faceR(X, Y, s, u1, u2, t1, t2, fill) + faceL(X, Y, s, u1, u2, t1, t2, shade(fill, -0.25));
+  }
+  return `<g class="win">${out}</g>`;
+}
+
+
+function portrait(pid) {
+  const p = PERSONAS[pid] || PERSONAS.phil, c = p.color, dark = shade(c, -0.35);
+  let acc = "", head = "";
+  const face = `<circle cx="60" cy="54" r="22" fill="${p.skin}" stroke="#2a2118" stroke-width="2"/>
+    <path d="M47 47 L55 50 M73 47 L65 50" stroke="#2a2118" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="52" cy="55" r="2.6" fill="#2a2118"/><circle cx="68" cy="55" r="2.6" fill="#2a2118"/>
+    <path d="M50 64 Q60 72 71 63" fill="none" stroke="#2a2118" stroke-width="2.5" stroke-linecap="round"/>`;
+  const hood = `<path d="M33 66 Q28 24 60 22 Q92 24 87 66 Q84 40 60 36 Q36 40 33 66 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`;
+  if (p.acc === "rod") { head = hood; acc = `<line x1="96" y1="116" x2="112" y2="18" stroke="#6b4423" stroke-width="4" stroke-linecap="round"/><path d="M112 18 L106 70" stroke="#555" stroke-width="1.2"/><path d="M106 70 q-5 6 0 10 q5 -2 3 -6" fill="none" stroke="#999" stroke-width="2"/>`; }
+  if (p.acc === "tie") { head = `<path d="M36 58 Q34 26 60 26 Q86 26 84 58 Q80 40 60 38 Q40 40 36 58 Z" fill="#3b2a1a"/>`; acc = `<polygon points="60,82 54,90 60,112 66,90" fill="#f0b429" stroke="#2a2118"/><rect x="45" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/><rect x="63" y="50" width="12" height="8" rx="2" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "mask") { head = hood; acc = `<path d="M38 58 Q60 54 82 58 L80 72 Q60 80 40 72 Z" fill="#1a130c"/><text x="60" y="71" text-anchor="middle" font-size="10" fill="${c}" font-family="Nunito, sans-serif" font-weight="800">$$$</text>`; }
+  if (p.acc === "cap") { head = `<path d="M37 48 Q38 28 60 28 Q82 28 83 48 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/><path d="M80 46 L100 50 L82 52 Z" fill="${dark}" stroke="#2a2118" stroke-width="2"/>`; acc = `<rect x="78" y="88" width="26" height="22" rx="4" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><path d="M84 88 Q91 76 98 88" fill="none" stroke="#2a2118" stroke-width="2"/>`; }
+  if (p.acc === "laptop") { head = `<path d="M38 50 Q38 28 60 28 Q82 28 82 50 Q76 36 60 36 Q44 36 38 50 Z" fill="#2a2118"/>`; acc = `<polygon points="30,96 76,96 84,116 22,116" fill="#aab4bf" stroke="#2a2118" stroke-width="2"/><circle cx="53" cy="106" r="3" fill="#fff"/><rect x="45" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/><rect x="63" y="51" width="12" height="7" rx="3" fill="rgba(160,220,255,0.6)" stroke="#2a2118" stroke-width="1.5"/>`; }
+  if (p.acc === "usb") { head = `<path d="M34 46 L86 46 L78 38 Q60 20 42 38 Z" fill="#6b4423" stroke="#2a2118" stroke-width="2"/><rect x="30" y="44" width="60" height="5" rx="2" fill="#5e3b17"/>`; acc = `<rect x="84" y="84" width="14" height="26" rx="3" fill="#2c3e50" stroke="#2a2118" stroke-width="2"/><rect x="87" y="76" width="8" height="9" fill="#c9ced4" stroke="#2a2118" stroke-width="1.5"/>`; }
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="58" fill="${shade(c, 0.78)}" stroke="${c}" stroke-width="4"/>
+    <path d="M18 120 Q18 82 60 80 Q102 82 102 120 Z" fill="${c}" stroke="#2a2118" stroke-width="2"/>${face}${head}${acc}</svg>`;
+}
+
+
+// ================= utilitaires =================
+const $ = (id) => document.getElementById(id);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const r1 = (x) => Math.round(x * 10) / 10;
+const k = (x) => (Math.round(x * 10) / 10).toLocaleString("fr-BE", { maximumFractionDigits: 1 }) + " k€";
+const store = { get(key) { try { return localStorage.getItem(key); } catch { return null; } }, set(key, v) { try { localStorage.setItem(key, v); } catch {} } };
+const tabStore = {
+  get(key) { try { const v = sessionStorage.getItem(key); if (v !== null) return v; } catch {} return store.get(key); },
+  set(key, v) { try { sessionStorage.setItem(key, v); } catch {} store.set(key, v); },
+};
+function setStatus(m) { $("status").textContent = m; }
+
+// ================= règles =================
+const stageIdx = (period) => Math.min(4, Math.floor((period - 1) / 2));
+let G = null; // partie en cours
+
+function newGame(name, table) {
+  return { v: 1, name, table, period: 1, phase: "growth", treso: 15, conf: 70, bonus: 0, built: {}, capUsed: 0, grew: false, log: [], report: null, spent: 0, losses: 0, bankrupt: false, done: false, justBuilt: null };
+}
+const S = () => stageIdx(G.period);
+const size = () => STAGES[S()].size;
+const capacity = () => 2 + (G.built.resp ? 1 : 0) + (G.built.ciso ? 1 : 0);
+const costNow = (m) => r1(m.base * 2 * size());
+const upkeepOf = (m) => r1(m.base * 0.35 * size());
+const upkeepTotal = () => r1(Object.keys(G.built).reduce((s, id) => s + upkeepOf(MB[id]), 0));
+const available = (m) => S() + 1 >= (m.from || 1) && (m.needs || []).every((n) => G.built[n]);
+const requiredAt = (stageNo) => MEASURES.filter((m) => m.req <= stageNo);
+function maturity(stageNo = S() + 1) {
+  const req = requiredAt(stageNo);
+  return Math.round((req.filter((m) => G.built[m.id]).length / req.length) * 100);
+}
+const marginNow = () => r1(STAGES[S()].margin * (0.5 + G.conf / 200) + G.bonus);
+const growCost = () => r1(4 * size());
+const companyValue = () => Math.round(G.treso + marginNow() * 2);
+
+function buy(id) {
+  const m = MB[id];
+  if (G.phase !== "build" || G.built[id] || !available(m) || G.capUsed >= capacity() || G.treso < costNow(m)) return;
+  const c = costNow(m);
+  G.treso = r1(G.treso - c); G.spent = r1(G.spent + c);
+  G.built[id] = G.period; G.capUsed++; G.justBuilt = { id, at: Date.now() };
+  save(); render();
+}
+function grow() {
+  const c = growCost();
+  if (G.phase !== "build" || G.grew || G.treso < c) return;
+  G.treso = r1(G.treso - c); G.bonus = r1(G.bonus + c * 0.4); G.grew = true;
+  save(); render();
+}
+function resolveThreat(t) {
+  const have = t.protect.filter((id) => G.built[id]);
+  const coverage = have.length / t.protect.length;
+  let loss = t.base * size() * (1 - coverage);
+  const reducers = [];
+  if (loss > 0 && t.recover && G.built.restore && G.built.backup) { loss *= 0.5; reducers.push("Sauvegardes testées : reprise rapide, dégâts divisés par deux"); }
+  if (loss > 0 && G.built.irp) { loss *= 0.8; reducers.push("Plan de réaction : −20 % de dégâts"); }
+  if (loss > 0 && G.built.ciso) { loss *= 0.8; reducers.push("CISOaaS : −20 % de dégâts"); }
+  loss = r1(loss);
+  const confLoss = loss > 0 ? Math.round(4 + 14 * (1 - coverage) + (t.conf || 0)) : 0;
+  return { have, coverage, loss, confLoss, reducers };
+}
+function resolveOpp(o) {
+  if (!o) return null;
+  const ok = o.needMaturity ? maturity() >= o.needMaturity : o.need.every((id) => G.built[id]);
+  return { ok, eff: ok ? o.win : o.lose, text: ok ? o.winText : o.loseText };
+}
+function closePeriod() {
+  if (G.phase !== "build") return;
+  const ev = PERIODS[G.period - 1];
+  const margin = marginNow(), up = upkeepTotal();
+  const th = resolveThreat(ev.threat), op = resolveOpp(ev.opp);
+  const mat = maturity();
+  const eff = (op && op.eff) || {};
+  let conf = G.conf - th.confLoss + (eff.conf || 0) + (mat >= 80 ? 3 : 0);
+  G.treso = r1(G.treso + margin - up - th.loss + (eff.treso || 0));
+  G.bonus = r1(Math.max(0, G.bonus + (eff.bonus || 0)));
+  G.conf = Math.max(0, Math.min(100, conf));
+  G.losses = r1(G.losses + th.loss);
+  G.report = { margin, up, loss: th.loss, opp: eff.treso || 0, mat, th, op, matBonus: mat >= 80 };
+  G.log.push({ period: G.period, stage: S() + 1, treso: G.treso, conf: G.conf, mat, loss: th.loss });
+  G.phase = "event";
+  save(); render(); pushRun();
+}
+function nextPeriod() {
+  if (G.treso < 0) { G.bankrupt = true; G.phase = "end"; G.done = true; }
+  else if (G.period >= 10) { G.phase = "end"; G.done = true; }
+  else {
+    G.period++; G.capUsed = 0; G.grew = false; G.report = null;
+    G.phase = G.period % 2 === 1 ? "growth" : "build";
+  }
+  save(); render(); pushRun();
+}
+
+// ================= persistance =================
+let db = null;
+function save() { try { tabStore.set("grandit-game", JSON.stringify(G)); } catch {} }
+function load() { try { const v = tabStore.get("grandit-game"); return v ? JSON.parse(v) : null; } catch { return null; } }
+let chain = Promise.resolve();
+function pushRun() {
+  if (!db || !G) return;
+  const body = { name: G.name, table: G.table, period: G.period, stage: S() + 1, treso: G.treso, conf: G.conf, maturity: maturity(), overall: Math.round(Object.keys(G.built).length / MEASURES.length * 100), losses: G.losses, spent: G.spent, value: companyValue(), status: G.bankrupt ? "faillite" : G.done ? "terminé" : "en cours", built: G.built, updatedAt: new Date().toISOString() };
+  chain = chain.then(() => db.collection("runs").doc(G.table).set(body)).catch(() => setStatus("Le classement n'a pas pu être mis à jour ; la partie continue sur cet appareil."));
+}
+
+// ================= scène =================
+const PX = (gx, gy) => iso(gx, gy);
+function house(X, Y) {
+  return box(X, Y, 0.55, 30, "#f3e3c3") + windowsRow(X, Y, 0.55, 2, 12, 22, "#7fb3d5") + roof(X, Y, 0.55, 30, 26, "#c0392b") +
+    faceL(X, Y, 0.55, 0.15, 0.6, 0, 18, "#9aa1a9") + faceL(X, Y, 0.55, 0.15, 0.6, 6, 7.5, "#7c838b") + faceL(X, Y, 0.55, 0.15, 0.6, 12, 13.5, "#7c838b");
+}
+function office(X, Y, floors, col, roofCol) {
+  const h = 22 + floors * 18;
+  let s = box(X, Y, 0.6, h, col, roofCol);
+  for (let f = 0; f < floors + 1; f++) s += windowsRow(X, Y, 0.6, 3, 8 + f * 18, 18 + f * 18, "#7fb3d5");
+  return s;
+}
+function workshop(X, Y, big) {
+  const sz = big ? 0.9 : 0.75;
+  return box(X, Y, sz, 34, "#d9b99b") + faceL(X, Y, sz, 0.3, 0.7, 0, 24, "#6b4423") + faceR(X, Y, sz, 0.2, 0.45, 16, 26, "#9cc3dd") +
+    roof(X, Y, sz, 34, 22, "#8b4513") + box(X + 20, Y - 38, 0.09, 26, "#7a4a2a") +
+    `<circle class="smoke" cx="${X + 20}" cy="${Y - 72}" r="6" fill="#d7d7d7"/><circle class="smoke d2" cx="${X + 20}" cy="${Y - 72}" r="6" fill="#d7d7d7"/>`;
+}
+function warehouse(X, Y) {
+  return box(X, Y, 0.75, 26, "#c9ced4", "#9aa1a9") + faceL(X, Y, 0.75, 0.1, 0.4, 0, 18, "#5d6d7e") + faceL(X, Y, 0.75, 0.55, 0.85, 0, 18, "#5d6d7e") +
+    faceR(X, Y, 0.75, 0.2, 0.8, 18, 23, "#f0b429");
+}
+function hall(X, Y) {
+  let s = box(X, Y, 1.0, 38, "#b7c3cf", "#8d9aa8");
+  for (let i = 0; i < 4; i++) s += faceR(X, Y, 1.0, 0.1 + i * 0.22, 0.25 + i * 0.22, 20, 32, "#9cc3dd");
+  return s + faceL(X, Y, 1.0, 0.35, 0.65, 0, 28, "#5d6d7e");
+}
+function vehicle(X, Y, col, long) {
+  const s = long ? 0.42 : 0.32;
+  return box(X, Y - 4, s, 12, col) + box(X + (long ? 8 : 0), Y - 16, s * 0.6, 10, shade(col, 0.3)) +
+    `<ellipse cx="${X - s * TW * 0.6}" cy="${Y - 2}" rx="4" ry="5" fill="#222"/><ellipse cx="${X + s * TW * 0.3}" cy="${Y + 6}" rx="4" ry="5" fill="#222"/>`;
+}
+function tree(X, Y, kk) {
+  return `<ellipse cx="${X}" cy="${Y + 2}" rx="11" ry="4.5" fill="rgba(0,0,0,0.18)"/><rect x="${X - 2.5}" y="${Y - 14}" width="5" height="15" fill="#6b4423"/>` +
+    `<g class="sway" style="animation-delay:${-kk * 0.7}s"><circle cx="${X}" cy="${Y - 22}" r="${11 + (kk % 2) * 3}" fill="#3f8f3a" stroke="#2a5e26" stroke-width="1.5"/><circle cx="${X - 4}" cy="${Y - 26}" r="5" fill="#6cc25c"/></g>`;
+}
+function antenna(X, Y) {
+  return `<line x1="${X}" y1="${Y}" x2="${X}" y2="${Y - 40}" stroke="#4a4a4a" stroke-width="3"/><circle cx="${X}" cy="${Y - 42}" r="3.5" fill="#d2452f"/>` +
+    [8, 14, 20].map((r) => `<path d="M ${X - r} ${Y - 38 - r * 0.5} Q ${X} ${Y - 46 - r} ${X + r} ${Y - 38 - r * 0.5}" fill="none" stroke="#2c6ea8" stroke-width="2" stroke-linecap="round" opacity="${1 - r / 30}"/>`).join("");
+}
+const LAYOUT = [
+  [["house", 2.2, 2.2], ["car", 3.9, 2.6, "#2c6ea8"], ["tree", 1.0, 4.2], ["tree", 4.6, 0.8]],
+  [["house", 1.6, 1.8], ["office", 3.9, 1.6, 0], ["car", 2.4, 4.0, "#2c6ea8"], ["car", 3.4, 4.3, "#d35400"], ["tree", 4.8, 4.6], ["tree", 0.8, 4.4]],
+  [["office", 1.7, 1.7, 1], ["workshop", 4.2, 1.9], ["antenna", 1.7, 1.7], ["van", 2.4, 4.3, "#27ae60"], ["car", 3.6, 4.5, "#2c6ea8"], ["tree", 4.9, 4.6], ["tree", 0.7, 4.6]],
+  [["office", 1.5, 1.5, 2], ["workshop", 4.3, 1.6], ["warehouse", 4.2, 4.2], ["car", 1.4, 4.0, "#2c6ea8"], ["car", 2.2, 4.4, "#d35400"], ["van", 1.2, 5.0, "#27ae60"], ["tree", 0.5, 2.9]],
+  [["office", 1.4, 1.4, 3], ["workshop", 4.3, 1.5, 1], ["hall", 4.1, 4.2], ["warehouse", 1.6, 4.4], ["truck", 2.9, 5.2, "#c0392b"], ["tree", 0.5, 3.0], ["tree", 3.0, 0.5]],
+];
+const DRAW = {
+  house: (X, Y) => house(X, Y), office: (X, Y, f) => office(X, Y, f, "#eef1f4", "#2c6ea8"), workshop: (X, Y, big) => workshop(X, Y, big),
+  warehouse: (X, Y) => warehouse(X, Y), hall: (X, Y) => hall(X, Y), car: (X, Y, c) => vehicle(X, Y, c, false), van: (X, Y, c) => vehicle(X, Y, c, true),
+  truck: (X, Y, c) => vehicle(X, Y, c, true) + box(X - 14, Y - 6, 0.25, 22, "#eef1f4"), tree: (X, Y, kk) => tree(X, Y, kk || 1), antenna: (X, Y) => antenna(X, Y - 80),
+};
+// emplacements des protections, tout autour du terrain
+const SLOTS = (() => {
+  const out = [], n = MEASURES.length, a = 0.25, b = 5.75, per = [[a, a, b, a], [b, a, b, b], [b, b, a, b], [a, b, a, a]];
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * 4, side = Math.floor(t), f = t - side, [x1, y1, x2, y2] = per[side];
+    out.push([x1 + (x2 - x1) * f, y1 + (y2 - y1) * f]);
+  }
+  return out;
+})();
+function post(m, X, Y, pop) {
+  const c = FN_COLOR[m.fn];
+  return `<g class="${pop ? "pop" : ""}"><title>${esc(m.name)}</title><line x1="${X}" y1="${Y}" x2="${X}" y2="${Y - 20}" stroke="#5e3b17" stroke-width="2.5"/>` +
+    `<path d="M ${X - 8} ${Y - 34} L ${X + 8} ${Y - 34} L ${X + 8} ${Y - 24} Q ${X + 8} ${Y - 17} ${X} ${Y - 14} Q ${X - 8} ${Y - 17} ${X - 8} ${Y - 24} Z" fill="${c}" stroke="#2a2118" stroke-width="1.3"/>` +
+    `<path d="M ${X - 3.5} ${Y - 26} L ${X - 0.5} ${Y - 23} L ${X + 4} ${Y - 29}" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+}
+let sceneStage = -1;
+function renderScene() {
+  const st = S(), N = 6;
+  if (sceneStage === -1) {
+    // décor fixe
+    let bg = "";
+    const c = [iso(0, 0), iso(N, 0), iso(N, N), iso(0, N)];
+    bg += `<polygon points="${P([c[3], c[2], up(c[2], -26), up(c[3], -26)])}" fill="#8b5e34"/><polygon points="${P([c[2], c[1], up(c[1], -26), up(c[2], -26)])}" fill="#a8733f"/>`;
+    bg += `<polygon points="${P(c)}" fill="#8cc052" stroke="#5f8f34" stroke-width="2"/>`;
+    [[3, "x"], [3, "y"]].forEach(([v, ax]) => {
+      const pts = ax === "x" ? [iso(v - 0.18, 0.2), iso(v + 0.18, 0.2), iso(v + 0.18, N - 0.2), iso(v - 0.18, N - 0.2)] : [iso(0.2, v - 0.18), iso(N - 0.2, v - 0.18), iso(N - 0.2, v + 0.18), iso(0.2, v + 0.18)];
+      bg += `<polygon points="${P(pts)}" fill="#d9c08a" opacity="0.85"/>`;
+    });
+    $("layer-bg").innerHTML = bg;
+    $("layer-top").innerHTML = [[-240, -110, 1], [120, -90, 0.8]].map(([x, y, sc], i) => `<g class="cloud" style="animation-delay:${-i * 30}s"><g transform="translate(${x} ${y}) scale(${sc})" opacity="0.9"><ellipse rx="40" ry="15" fill="#fff"/><ellipse cx="-24" cy="4" rx="22" ry="11" fill="#fff"/><ellipse cx="26" cy="5" rx="26" ry="10" fill="#fff"/><ellipse cx="4" cy="-10" rx="22" ry="13" fill="#fff"/></g></g>`).join("");
+  }
+  const items = [];
+  LAYOUT[st].forEach(([kind, gx, gy, extra], kk) => { const [X, Y] = PX(gx, gy); items.push({ d: gx + gy + (kind === "antenna" ? 0.02 : 0), svg: DRAW[kind](X, Y, extra ?? kk) }); });
+  MEASURES.forEach((m, i) => {
+    if (!G.built[m.id]) return;
+    const [gx, gy] = SLOTS[i], [X, Y] = PX(gx, gy);
+    items.push({ d: gx + gy + 0.01, svg: post(m, X, Y, G.justBuilt && G.justBuilt.id === m.id && Date.now() - G.justBuilt.at < 900) });
+  });
+  $("layer-world").innerHTML = items.sort((a, b) => a.d - b.d).map((it) => it.svg).join("");
+  if (sceneStage !== st) { renderWalkers(st); sceneStage = st; }
+  $("stage-label").textContent = `Palier ${st + 1} · ${STAGES[st].name} · ${STAGES[st].people} personne${STAGES[st].people > 1 ? "s" : ""}`;
+}
+function renderWalkers(st) {
+  const layer = $("layer-walkers");
+  layer.innerHTML = "";
+  const n = Math.min(12, STAGES[st].people), shirts = ["#2c6ea8", "#d2452f", "#27ae60", "#8e44ad", "#e67e22", "#16a085"];
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for (let i = 0; i < n; i++) {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.innerHTML = `<ellipse cx="0" cy="2" rx="4.5" ry="2" fill="rgba(0,0,0,0.25)"/><g class="bob" style="animation-delay:${i * 0.1}s"><rect x="-3.5" y="-9" width="7" height="10" rx="3" fill="${shirts[i % shirts.length]}"/><circle cx="0" cy="-12" r="3.6" fill="#f1c27d"/></g>`;
+    layer.appendChild(g);
+    const route = i % 2 ? [PX(3, 0.4), PX(3, 5.6)] : [PX(0.4, 3), PX(5.6, 3)];
+    if (REDUCED || !g.animate) { const p = route[0]; g.setAttribute("transform", `translate(${p[0]} ${p[1]})`); continue; }
+    g.animate(route.map((p) => ({ transform: `translate(${p[0]}px, ${p[1]}px)` })), { duration: 14000 + i * 1300, iterations: Infinity, direction: "alternate", delay: -i * 2200, easing: "linear" });
+  }
+}
+
+// ================= rendu =================
+function pill(label, value, cls = "", meter) {
+  return `<span class="pill ${cls}"><small>${label}</small><b>${value}</b>${meter !== undefined ? `<span class="meter"><i style="width:${meter}%"></i></span>` : ""}</span>`;
+}
+function renderHUD() {
+  const mat = maturity();
+  $("hud").innerHTML = pill("Semestre", `${Math.min(G.period, 10)} / 10`) + pill("Trésorerie", k(G.treso), G.treso < 0 ? "neg" : "") +
+    pill("Marge par semestre", k(marginNow())) + pill("Confiance clients", G.conf + " %", "", G.conf) +
+    pill("Maturité CyFun Small", mat + " %", mat >= 80 ? "good" : mat < 50 ? "neg" : "", mat) + pill("Équipe", esc(G.name));
+}
+function chipReq(m) {
+  if (G.built[m.id]) return `<span class="chip ok">En place (semestre ${G.built[m.id]})</span>`;
+  const cur = S() + 1;
+  if (m.req <= cur) return `<span class="chip now">Attendue maintenant (palier ${m.req})</span>`;
+  if (m.req === cur + 1) return `<span class="chip soon">Attendue au prochain palier</span>`;
+  return `<span class="chip">Attendue au palier ${m.req}</span>`;
+}
+function threatVisual(t) {
+  if (t.persona) return portrait(t.persona);
+  const icon = t.icon === "disk"
+    ? `<rect x="36" y="34" width="48" height="56" rx="6" fill="#5d6d7e" stroke="#2a2118" stroke-width="2"/><circle cx="60" cy="58" r="14" fill="#c9ced4"/><circle cx="60" cy="58" r="3" fill="#2a2118"/><path d="M42 30 L78 94" stroke="#d2452f" stroke-width="5" stroke-linecap="round"/>`
+    : `<rect x="38" y="54" width="44" height="34" rx="5" fill="#f0b429" stroke="#2a2118" stroke-width="2"/><path d="M46 54 V44 A14 14 0 0 1 74 44 V54" fill="none" stroke="#2a2118" stroke-width="5"/><path d="M40 30 L80 94" stroke="#d2452f" stroke-width="5" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="58" fill="#fde7e2" stroke="#d2452f" stroke-width="4"/>${icon}</svg>`;
+}
+
+function renderPanel() {
+  const p = $("panel"), st = S(), stg = STAGES[st];
+  if (G.phase === "growth") {
+    const newly = MEASURES.filter((m) => m.req === st + 1);
+    p.innerHTML = `<span class="eyebrow">Semestre ${G.period} · nouveau palier</span><h2>Palier ${st + 1} : ${esc(stg.name)}</h2><p>${esc(stg.story)}</p>
+      <div><h3>Ce qu'il faut maintenant protéger</h3><ul class="clean" style="margin-top:6px">${stg.assets.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div>
+      <div><h3>Ce que CyFun Small attend à ce palier</h3><ul class="clean" style="margin-top:6px">${newly.map((m) => `<li>${esc(m.name)}${G.built[m.id] ? ' <span class="chip ok">déjà en place</span>' : ""}</li>`).join("")}</ul></div>
+      ${st > 0 ? `<p class="lesson">Maturité par rapport à ce nouveau palier : ${maturity()} %. ${maturity() < 80 ? "Des mesures attendues manquent : l'entreprise a grandi plus vite que sa sécurité." : "Votre sécurité suit la croissance."}</p>` : ""}
+      <div class="actions"><button class="btn gold" id="go-build">Passer aux décisions</button></div>`;
+    $("go-build").onclick = () => { G.phase = "build"; save(); render(); };
+    return;
+  }
+  if (G.phase === "build") {
+    const cap = capacity(), left = cap - G.capUsed;
+    let html = `<span class="eyebrow">Semestre ${G.period} sur 10 · palier ${st + 1}</span><h2>Vos décisions</h2>
+      <div class="actions" style="justify-content:space-between"><span class="cap" aria-label="${left} chantier(s) restant(s)">Chantiers : ${Array.from({ length: cap }, (_, i) => `<i class="${i < G.capUsed ? "used" : ""}"></i>`).join("")} <span class="sub">${left} restant${left > 1 ? "s" : ""}</span></span>
+      <span class="sub">Entretien des mesures : ${k(upkeepTotal())} par semestre</span></div>
+      <div class="grow"><p>Développer l'activité (machines, commercial) : ${k(growCost())} maintenant, +${k(growCost() * 0.4)} de marge par semestre ensuite.</p>
+      <button class="btn green small" id="grow" ${G.grew || G.treso < growCost() ? "disabled" : ""}>${G.grew ? "Fait ce semestre" : "Investir"}</button></div><div class="shop">`;
+    const row = (m) => {
+      const built = !!G.built[m.id], late = !built && m.req <= st + 1, avail = available(m), c = costNow(m);
+      let why = "";
+      if (!built) {
+        if (!avail) why = (m.from || 1) > st + 1 ? `Possible à partir du palier ${m.from}` : `Nécessite d'abord : ${(m.needs || []).map((n) => MB[n].name).join(", ")}`;
+        else if (left <= 0) why = "Plus de chantier ce semestre";
+        else if (G.treso < c) why = "Trésorerie insuffisante";
+      }
+      return `<div class="m-row ${built ? "built" : late ? "late" : ""}"><div><div class="chips" style="margin-bottom:3px"><span class="chip fn" style="background:${FN_COLOR[m.fn]}">${m.fn}</span>${chipReq(m)}</div><div class="t">${esc(m.name)}</div>${built ? "" : `<div class="d">${esc(m.text)}</div>`}</div>
+        <div class="side">${built ? `<span class="price">Entretien ${k(upkeepOf(m))}/sem.</span>` : `<span class="price">${k(c)} + ${k(upkeepOf(m))}/sem.</span>
+        <button class="btn gold small" data-buy="${m.id}" ${why ? "disabled" : ""}>Mettre en place</button>${why ? `<span class="price">${why}</span>` : ""}`}</div></div>`;
+    };
+    const todo = MEASURES.filter((m) => !G.built[m.id]);
+    const now = todo.filter((m) => m.req <= st + 1), soon = todo.filter((m) => m.req === st + 2), later = todo.filter((m) => m.req > st + 2), done = MEASURES.filter((m) => G.built[m.id]);
+    if (now.length) html += `<div class="fn-group"><span class="fn-title" style="color:var(--red)">Attendues maintenant (${now.length})</span>${now.map(row).join("")}</div>`;
+    else html += `<p class="outcome good" style="font-size:1rem">Tout ce que CyFun Small attend à ce palier est en place.</p>`;
+    if (soon.length) html += `<div class="fn-group"><span class="fn-title" style="color:var(--gold-dark)">À anticiper pour le prochain palier (${soon.length})</span>${soon.map(row).join("")}</div>`;
+    if (later.length) html += `<details class="fn-group"><summary class="fn-title" style="cursor:pointer">Plus tard (${later.length})</summary>${later.map(row).join("")}</details>`;
+    if (done.length) html += `<details class="fn-group"><summary class="fn-title" style="cursor:pointer;color:var(--green)">Déjà en place (${done.length})</summary>${done.map(row).join("")}</details>`;
+    html += `</div><div class="actions"><button class="btn red" id="close">Clore le semestre</button><span class="sub">Un incident et, parfois, une opportunité vous attendent.</span></div>`;
+    p.innerHTML = html;
+    p.querySelectorAll("[data-buy]").forEach((b) => b.onclick = () => buy(b.dataset.buy));
+    $("grow").onclick = grow;
+    $("close").onclick = closePeriod;
+    return;
+  }
+  if (G.phase === "event") {
+    const ev = PERIODS[G.period - 1], t = ev.threat, r = G.report, th = r.th;
+    const persona = t.persona ? PERSONAS[t.persona] : null;
+    const cls = th.loss === 0 ? "good" : th.coverage > 0 ? "mid" : "bad";
+    let html = `<span class="eyebrow">Semestre ${G.period} · ce qui s'est passé</span>
+      <div class="event threat"><div class="ev-head">${threatVisual(t)}<div><span class="eyebrow" style="color:var(--red)">Incident${persona ? " · " + esc(persona.name) : ""}</span><h2>${esc(t.title)}</h2></div></div>
+      <p>${esc(t.text)}</p>
+      <div class="cover">${t.protect.map((id) => `<span class="${G.built[id] ? "y" : "n"}">${G.built[id] ? "✓" : "✗"} ${esc(MB[id].name)}</span>`).join("")}</div>
+      ${th.reducers.map((x) => `<span class="sub">${esc(x)}</span>`).join("")}
+      <p class="outcome ${cls}">${th.loss === 0 ? "Aucun dégât : vos mesures ont tenu." : `Dégâts : −${k(th.loss)} · confiance −${th.confLoss} pts`}</p>
+      <p class="lesson">${esc(t.lesson)}</p></div>`;
+    if (ev.opp) {
+      const o = ev.opp, op = r.op;
+      html += `<div class="event opp"><span class="eyebrow" style="color:var(--blue)">Opportunité</span><h2>${esc(o.title)}</h2><p>${esc(o.text)}</p>
+        <p class="sub">Condition : ${o.needMaturity ? `maturité CyFun Small d'au moins ${o.needMaturity} % (vous : ${r.mat} %)` : o.need.map((id) => `${G.built[id] ? "✓" : "✗"} ${esc(MB[id].name)}`).join(" · ")}</p>
+        <p class="outcome ${op.ok ? "good" : "bad"}">${esc(op.text)}</p></div>`;
+    }
+    html += `<div class="actions"><button class="btn gold" id="go-report">Voir le bilan du semestre</button></div>`;
+    p.innerHTML = html;
+    $("go-report").onclick = () => { G.phase = "report"; save(); render(); };
+    return;
+  }
+  if (G.phase === "report") {
+    const r = G.report, last = G.period >= 10 || G.treso < 0;
+    const row = (l, v) => `<tr><td>${l}</td><td class="${v >= 0 ? "plus" : "minus"}">${v >= 0 ? "+" : "−"}${k(Math.abs(v))}</td></tr>`;
+    p.innerHTML = `<span class="eyebrow">Semestre ${G.period} · bilan</span><h2>Les comptes du semestre</h2>
+      <table class="ledger">${row("Marge de l'activité", r.margin)}${row("Entretien des mesures de sécurité", -r.up)}${r.loss ? row("Dégâts de l'incident", -r.loss) : ""}${r.opp ? row("Opportunité", r.opp) : ""}
+      <tr class="total"><td>Trésorerie</td><td class="${G.treso >= 0 ? "plus" : "minus"}">${k(G.treso)}</td></tr></table>
+      <p class="sub">Confiance clients : ${G.conf} %${r.matBonus ? " (+3 grâce à une maturité d'au moins 80 %)" : ""} · Maturité CyFun Small : ${r.mat} %</p>
+      ${G.treso < 0 ? `<p class="outcome bad">La trésorerie est négative : c'est la faillite.</p>` : ""}
+      <div class="actions"><button class="btn gold" id="go-next">${last ? "Voir le résultat final" : G.period % 2 === 0 ? "Grandir : palier suivant" : "Semestre suivant"}</button></div>`;
+    $("go-next").onclick = nextPeriod;
+    return;
+  }
+  if (G.phase === "end") {
+    const overall = Math.round(Object.keys(G.built).length / MEASURES.length * 100);
+    const late = MEASURES.filter((m) => G.built[m.id] && stageIdx(G.built[m.id]) + 1 > m.req);
+    const missing = MEASURES.filter((m) => !G.built[m.id] && m.req <= S() + 1);
+    p.innerHTML = `<span class="eyebrow">${G.bankrupt ? `Faillite au semestre ${G.period}` : "Fin de la partie"}</span>
+      <h2>${G.bankrupt ? "L'Atelier Boisvert a fermé ses portes" : "L'Atelier Boisvert a 50 salariés"}</h2>
+      ${G.bankrupt ? `<p>Les incidents ont coûté plus que ce que l'entreprise pouvait encaisser. La sécurité n'a pas grandi au rythme de l'activité.</p>` : `<p class="big">${k(companyValue())}</p><p class="sub">Valeur de l'entreprise (trésorerie et deux semestres de marge)</p>`}
+      <table class="ledger"><tr><td>Trésorerie</td><td>${k(G.treso)}</td></tr><tr><td>Investi dans la sécurité</td><td>${k(G.spent)}</td></tr><tr><td>Perdu dans les incidents</td><td class="minus">${k(G.losses)}</td></tr><tr><td>Mesures CyFun Small en place</td><td>${Object.keys(G.built).length} / ${MEASURES.length} (${overall} %)</td></tr></table>
+      <div><h3>Mises en place en retard</h3><p class="sub" style="margin-top:4px">${late.length ? late.map((m) => `${esc(m.name)} (attendue au palier ${m.req}, faite au palier ${stageIdx(G.built[m.id]) + 1})`).join(" · ") : "Aucune : bravo."}</p></div>
+      <div><h3>Jamais mises en place</h3><p class="sub" style="margin-top:4px">${missing.length ? missing.map((m) => esc(m.name)).join(" · ") : "Aucune."}</p></div>
+      <p class="lesson">La leçon : chaque palier de croissance ajoute des actifs à protéger. Une mesure mise en place tôt coûte moins cher et protège plus longtemps ; un responsable désigné, puis un CISO, donnent la capacité de suivre le rythme.</p>
+      <div class="actions"><button class="btn plain" id="restart">Rejouer</button><span id="restart-confirm"></span></div>`;
+    $("restart").onclick = askRestart;
+  }
+}
+function askRestart() {
+  $("restart-confirm").innerHTML = `<span class="confirm">Recommencer une nouvelle entreprise ? <button class="btn red small" id="restart-yes">Oui</button><button class="btn plain small" id="restart-no">Non</button></span>`;
+  $("restart-yes").onclick = () => { const n = G.name, t = G.table; G = newGame(n, t); sceneStage = -1; save(); render(); pushRun(); };
+  $("restart-no").onclick = () => { $("restart-confirm").innerHTML = ""; };
+}
+
+function renderRoadmap() {
+  const cur = S();
+  let html = `<table class="rm"><thead><tr><th class="l">Mesure</th>${STAGES.map((s, i) => `<th class="${i === cur ? "cur" : ""}">Palier ${i + 1}<br>${s.people} pers.</th>`).join("")}</tr></thead><tbody>`;
+  MEASURES.forEach((m) => {
+    const bs = G.built[m.id] ? stageIdx(G.built[m.id]) : -1;
+    html += `<tr><td class="l">${esc(m.name)}<small style="color:${FN_COLOR[m.fn]}">${m.fn}</small></td>`;
+    STAGES.forEach((_, i) => {
+      let cell = "";
+      if (bs === i) cell = `<span class="dot ${bs + 1 > m.req ? "lateon" : "on"}" title="Mise en place au semestre ${G.built[m.id]}">✓</span>`;
+      else if (i === m.req - 1) cell = bs >= 0 && bs < i ? "" : i <= cur && bs < 0 ? `<span class="dot miss" title="Attendue et manquante">✗</span>` : `<span class="dot req" title="Attendue à ce palier">!</span>`;
+      html += `<td class="${i === cur ? "cur" : ""}">${cell}</td>`;
+    });
+    html += `</tr>`;
+  });
+  $("roadmap").innerHTML = html + `</tbody></table>`;
+}
+
+function renderStart() {
+  const el = $("start");
+  let opts = "";
+  for (let i = 1; i <= 12; i++) opts += `<option value="t${i}">Table ${i}</option>`;
+  el.innerHTML = `<span class="eyebrow">Nouvelle partie</span><h2>Créez votre entreprise</h2>
+    <p>Vous fondez l'Atelier Boisvert dans votre garage. En dix semestres, l'entreprise va passer d'une personne à cinquante. À chaque palier, de nouveaux actifs apparaissent et CyFun Small attend de nouvelles mesures.</p>
+    <ul class="clean"><li>À chaque semestre, vous menez un nombre limité de chantiers de sécurité, et pouvez investir dans la croissance.</li><li>Chaque semestre apporte un incident, et parfois une opportunité : la même séquence pour toutes les tables.</li><li>Les mesures coûtent moins cher quand l'entreprise est petite. Mais la trésorerie est serrée.</li><li>Objectif : arriver au palier 5 avec la plus forte valeur d'entreprise, sans faire faillite.</li></ul>
+    <div class="row"><label for="st-table">Table<select id="st-table">${opts}</select></label><label for="st-name">Nom de l'équipe<input type="text" id="st-name" maxlength="30" placeholder="Ex. Les Menuisiers"></label>
+    <button class="btn gold" id="st-go">Créer l'entreprise</button></div>`;
+  const prev = tabStore.get("grandit-table"); if (prev) $("st-table").value = prev;
+  $("st-go").onclick = () => {
+    const table = $("st-table").value, name = $("st-name").value.trim() || "Table " + table.slice(1);
+    tabStore.set("grandit-table", table);
+    G = newGame(name, table); sceneStage = -1; save(); render(); pushRun();
+  };
+}
+
+function render() {
+  if (!G) { $("start").hidden = false; $("play").hidden = true; renderStart(); return; }
+  $("start").hidden = true; $("play").hidden = false;
+  renderHUD(); renderScene(); renderPanel(); renderRoadmap();
+}
+
+// ================= classement =================
+let runs = {}, confirmClear = false;
+function renderRank() {
+  const list = Object.entries(runs).map(([id, r]) => ({ id, ...r }));
+  const box = $("rank-body");
+  if (!db) { box.innerHTML = `<div class="empty">Le classement partagé n'est disponible que dans Claude. Ici, chaque appareil joue seul.</div>`; return; }
+  if (!list.length) { box.innerHTML = `<div class="empty">Aucune équipe n'a encore commencé. Dès qu'une table crée son entreprise, elle apparaît ici en direct.</div>`; return; }
+  list.sort((a, b) => (b.status === "faillite" ? -1 : 0) - (a.status === "faillite" ? -1 : 0) || b.value - a.value);
+  let html = `<div class="board-box"><table class="rank"><thead><tr><th>#</th><th class="l">Équipe</th><th>Semestre</th><th>Palier</th><th>Trésorerie</th><th>Maturité</th><th>Pertes incidents</th><th>Investi sécurité</th><th>Valeur</th><th>Statut</th></tr></thead><tbody>`;
+  list.forEach((r, i) => {
+    const st = r.status === "faillite" ? "ko" : r.status === "terminé" ? "done" : "run";
+    html += `<tr><td class="pos">${i + 1}</td><td class="l">${esc(r.name)} <span class="sub">· table ${esc(String(r.table || r.id).slice(1))}</span></td><td>${r.period}/10</td><td>${r.stage}</td><td>${k(r.treso)}</td><td>${r.maturity} %</td><td class="minus">${k(r.losses)}</td><td>${k(r.spent)}</td><td><b>${r.status === "faillite" ? "—" : k(r.value)}</b></td><td><span class="st ${st}">${esc(r.status)}</span></td></tr>`;
+  });
+  html += `</tbody></table></div><div class="actions" style="margin-top:14px">${confirmClear ? `<span class="confirm">Effacer tout le classement ? <button class="btn red small" id="clr-yes">Effacer</button><button class="btn plain small" id="clr-no">Annuler</button></span>` : `<button class="btn plain small" id="clr">Effacer le classement</button>`}</div>`;
+  box.innerHTML = html;
+  const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
+  on("clr", () => { confirmClear = true; renderRank(); });
+  on("clr-no", () => { confirmClear = false; renderRank(); });
+  on("clr-yes", () => { confirmClear = false; Object.keys(runs).forEach((id) => { chain = chain.then(() => db.collection("runs").doc(id).delete()).catch(() => {}); }); });
+}
+
+// ================= navigation et démarrage =================
+function show(v) {
+  ["game", "rank"].forEach((x) => { $("view-" + x).hidden = x !== v; $("tab-" + x).setAttribute("aria-selected", String(x === v)); });
+  tabStore.set("grandit-view", v);
+}
+$("tab-game").onclick = () => show("game");
+$("tab-rank").onclick = () => show("rank");
+
+G = load();
+render(); renderRank();
+show(tabStore.get("grandit-view") === "rank" ? "rank" : "game");
+setStatus("Mode local : la partie est enregistrée sur cet appareil.");
+(async () => {
+  try { db = window.claude ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) { renderRank(); return; }
+  setStatus("Connecté : votre progression apparaît en direct dans le classement.");
+  db.collection("runs").onSnapshot((snap) => {
+    const next = {}; snap.docs.forEach((d) => { if (d.exists) next[d.id] = d.data(); });
+    runs = next; renderRank();
+  }, () => setStatus("Le classement n'est plus synchronisé. Rechargez la page."));
+  if (G) pushRun();
+})();
+</script>
