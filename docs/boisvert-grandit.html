@@ -81,6 +81,10 @@ svg.scene text { font-family: var(--f-display); }
 .smoke.d2 { animation-delay: 1.3s; }
 @keyframes smoke { from { transform: translate(0, 0) scale(0.6); opacity: 0.75; } to { transform: translate(6px, -36px) scale(1.8); opacity: 0; } }
 .cloud { animation: cloud 70s linear infinite; }
+.flame { animation: flick 0.35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes flick { from { transform: scale(0.85, 0.8); } to { transform: scale(1.05, 1.15); } }
+.shake { animation: shake 0.45s; }
+@keyframes shake { 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -2px); } }
 @keyframes cloud { from { transform: translateX(-460px); } to { transform: translateX(460px); } }
 
 .panel { background: linear-gradient(180deg, #fffdf6, #f5e9cf); border: 3px solid var(--wood-dark); border-radius: 18px; padding: 16px; display: grid; gap: 12px; min-width: 0; box-shadow: 0 5px 0 #3d260e; }
@@ -134,6 +138,9 @@ ul.clean li::before { content: ""; flex: none; width: 8px; height: 8px; border-r
 .cover .y { color: var(--green); } .cover .n { color: var(--red); }
 .outcome { font: 400 1.25rem var(--f-display); }
 .outcome.good { color: var(--green); } .outcome.bad { color: var(--red); } .outcome.mid { color: var(--orange); }
+.gap { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px dashed var(--line); }
+.gap-p svg { width: 44px; height: 44px; flex: none; }
+.gap b { font-weight: 800; }
 .lesson { font-size: 0.88rem; font-weight: 700; color: var(--muted); border-left: 4px solid var(--gold); padding-left: 10px; }
 
 table.ledger { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-weight: 800; }
@@ -206,7 +213,7 @@ table.rank { border-collapse: collapse; width: 100%; min-width: 720px; font-vari
       <div class="game">
         <div class="stage-box">
           <svg class="scene" id="scene" viewBox="-300 -150 600 450" role="img" aria-label="L'entreprise et ses protections">
-            <g id="layer-bg"></g><g id="layer-world"></g><g id="layer-walkers"></g><g id="layer-top"></g>
+            <g id="layer-bg"></g><g id="layer-world"></g><g id="layer-walkers"></g><g id="layer-fx" pointer-events="none"></g><g id="layer-top"></g>
           </svg>
           <span class="stage-label" id="stage-label"></span>
         </div>
@@ -283,6 +290,29 @@ const PERSONAS = {
   visiteur: { name: "Le Faux Visiteur", short: "Visiteur", color: "#16a085", acc: "laptop", skin: "#c68642" },
   semeur: { name: "Le Semeur de clés", short: "Semeur", color: "#d35400", acc: "usb", skin: "#f1c27d" },
 };
+
+// Chaque mesure attendue mais absente est une faille qu'un attaquant opportuniste vient exploiter.
+const GAPS = {
+  resp: { persona: "vanessa", title: "Arnaque au président", text: "Personne n'est chargé de vérifier : un faux mail du « patron » obtient un virement urgent.", base: 3 },
+  policy: { persona: "visiteur", title: "Règles floues", text: "Sans règles écrites, un employé emporte le fichier clients sur sa clé personnelle.", base: 3 },
+  suppliers: { persona: "vanessa", title: "Prestataire négligent", text: "Le prestataire laisse un accès à distance ouvert après une intervention.", base: 3 },
+  ciso: { persona: "crypto", title: "Personne aux commandes", text: "Les exigences du client et les alertes s'accumulent sans pilote : une attaque passe entre les mailles.", base: 3 },
+  inv: { persona: "pickpocket", title: "L'appareil oublié", text: "Un vieux PC que personne ne recensait, jamais protégé, sert de porte d'entrée.", base: 2 },
+  updates: { persona: "crypto", title: "Faille connue exploitée", text: "Un robot scanne Internet et exploite une faille du routeur, jamais corrigée.", base: 3 },
+  av: { persona: "semeur", title: "Logiciel espion", text: "Une pièce jointe piégée installe un logiciel espion que rien n'arrête.", base: 3 },
+  mfa: { persona: "phil", title: "Compte piraté", text: "Un mot de passe deviné suffit à ouvrir la messagerie.", base: 3 },
+  backup: { persona: "crypto", title: "Données perdues", text: "Des fichiers effacés ou chiffrés ne peuvent pas être récupérés.", base: 3 },
+  accounts: { persona: "pickpocket", title: "Le compte partagé", text: "Un mot de passe commun circule et finit entre de mauvaises mains.", base: 3 },
+  aware: { persona: "phil", title: "Hameçonnage", text: "Un employé non sensibilisé clique sur un lien piégé.", base: 3 },
+  network: { persona: "visiteur", title: "Intrus sur le Wi-Fi", text: "Un visiteur se connecte au Wi-Fi interne et explore le réseau.", base: 3 },
+  mobile: { persona: "pickpocket", title: "Smartphone perdu", text: "Un téléphone sans code, perdu dans le train, donne accès aux mails des clients.", base: 2 },
+  segment: { persona: "semeur", title: "Contagion de l'atelier", text: "Un virus du bureau se propage jusqu'aux machines de production.", base: 4 },
+  monitor: { persona: "crypto", title: "Intrus invisible", text: "Un attaquant reste caché des semaines dans le réseau : personne ne regarde les alertes.", base: 4 },
+  irp: { persona: "crypto", title: "La panique", text: "Un incident mineur tourne à la crise : personne ne sait qui appeler ni quoi couper.", base: 3 },
+  restore: { persona: "crypto", title: "Sauvegardes illisibles", text: "Les sauvegardes existent, mais sont corrompues : personne ne l'avait vérifié.", base: 3 },
+};
+const MAX_GAP_ATTACKS = 3;
+const gapCap = () => [1, 2, 3, 3, 3][S()]; // les attaquants opportunistes s'intéressent davantage aux entreprises qui grandissent
 
 // Les 10 semestres : la même séquence pour toutes les tables, pour comparer au débrief.
 const PERIODS = [
@@ -439,19 +469,40 @@ function resolveOpp(o) {
   const ok = o.needMaturity ? maturity() >= o.needMaturity : o.need.every((id) => G.built[id]);
   return { ok, eff: ok ? o.win : o.lose, text: ok ? o.winText : o.loseText };
 }
+// les failles exploitées ce semestre : mesures attendues absentes, les plus graves d'abord
+function gapAttacks() {
+  const missing = MEASURES.filter((m) => m.req <= S() + 1 && !G.built[m.id]);
+  missing.sort((a, b) => GAPS[b.id].base - GAPS[a.id].base || MEASURES.indexOf(a) - MEASURES.indexOf(b));
+  return missing.slice(0, gapCap()).map((m) => {
+    let loss = GAPS[m.id].base * size() * 0.5;
+    if (G.built.irp) loss *= 0.8;
+    if (G.built.ciso) loss *= 0.8;
+    return { id: m.id, loss: r1(loss), conf: 3 };
+  });
+}
+// tentatives repoussées : quelques mesures en place, différentes d'un semestre à l'autre
+function blockedAttempts() {
+  const inPlace = MEASURES.filter((m) => G.built[m.id] && GAPS[m.id]);
+  if (!inPlace.length) return [];
+  const out = [];
+  for (let i = 0; i < Math.min(2, inPlace.length); i++) out.push(inPlace[(G.period * 3 + i * 5) % inPlace.length].id);
+  return [...new Set(out)];
+}
 function closePeriod() {
   if (G.phase !== "build") return;
   const ev = PERIODS[G.period - 1];
   const margin = marginNow(), up = upkeepTotal();
   const th = resolveThreat(ev.threat), op = resolveOpp(ev.opp);
+  const gaps = gapAttacks(), blocked = blockedAttempts();
+  const gapLoss = r1(gaps.reduce((s2, g) => s2 + g.loss, 0)), gapConf = gaps.reduce((s2, g) => s2 + g.conf, 0);
   const mat = maturity();
   const eff = (op && op.eff) || {};
-  let conf = G.conf - th.confLoss + (eff.conf || 0) + (mat >= 80 ? 3 : 0);
-  G.treso = r1(G.treso + margin - up - th.loss + (eff.treso || 0));
+  let conf = G.conf - th.confLoss - gapConf + (eff.conf || 0) + (mat >= 80 ? 3 : 0);
+  G.treso = r1(G.treso + margin - up - th.loss - gapLoss + (eff.treso || 0));
   G.bonus = r1(Math.max(0, G.bonus + (eff.bonus || 0)));
   G.conf = Math.max(0, Math.min(100, conf));
-  G.losses = r1(G.losses + th.loss);
-  G.report = { margin, up, loss: th.loss, opp: eff.treso || 0, mat, th, op, matBonus: mat >= 80 };
+  G.losses = r1(G.losses + th.loss + gapLoss);
+  G.report = { margin, up, loss: th.loss, gapLoss, gaps, blocked, opp: eff.treso || 0, mat, th, op, matBonus: mat >= 80 };
   G.log.push({ period: G.period, stage: S() + 1, treso: G.treso, conf: G.conf, mat, loss: th.loss });
   G.phase = "event";
   save(); render(); pushRun();
@@ -460,7 +511,7 @@ function nextPeriod() {
   if (G.treso < 0) { G.bankrupt = true; G.phase = "end"; G.done = true; }
   else if (G.period >= 10) { G.phase = "end"; G.done = true; }
   else {
-    G.period++; G.capUsed = 0; G.grew = false; G.report = null;
+    G.period++; G.capUsed = 0; G.grew = false; G.report = null; sceneFire = false;
     G.phase = G.period % 2 === 1 ? "growth" : "build";
   }
   save(); render(); pushRun();
@@ -567,6 +618,7 @@ function renderScene() {
     const [gx, gy] = SLOTS[i], [X, Y] = PX(gx, gy);
     items.push({ d: gx + gy + 0.01, svg: post(m, X, Y, G.justBuilt && G.justBuilt.id === m.id && Date.now() - G.justBuilt.at < 900) });
   });
+  if (sceneFire) { const [gx, gy] = LAYOUT[st][0].slice(1, 3), [X, Y] = PX(gx, gy); items.push({ d: 99, svg: fireSvg(X, Y - 60) }); }
   $("layer-world").innerHTML = items.sort((a, b) => a.d - b.d).map((it) => it.svg).join("");
   if (sceneStage !== st) { renderWalkers(st); sceneStage = st; }
   $("stage-label").textContent = `Palier ${st + 1} · ${STAGES[st].name} · ${STAGES[st].people} personne${STAGES[st].people > 1 ? "s" : ""}`;
@@ -584,6 +636,86 @@ function renderWalkers(st) {
     if (REDUCED || !g.animate) { const p = route[0]; g.setAttribute("transform", `translate(${p[0]} ${p[1]})`); continue; }
     g.animate(route.map((p) => ({ transform: `translate(${p[0]}px, ${p[1]}px)` })), { duration: 14000 + i * 1300, iterations: Infinity, direction: "alternate", delay: -i * 2200, easing: "linear" });
   }
+}
+
+// ---------- attaques dans la scène ----------
+let sceneFire = false, animatedFor = null, animChain = Promise.resolve();
+const SVGNS = "http://www.w3.org/2000/svg";
+const REDUCED_M = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const wait = (ms) => new Promise((r) => setTimeout(r, REDUCED_M ? 0 : ms));
+function fireSvg(X, Y) {
+  const f = (dx, sc) => `<path class="flame" d="M ${X + dx} ${Y} q ${-8 * sc} ${-10 * sc} 0 ${-26 * sc} q ${8 * sc} ${14 * sc} 0 ${26 * sc} z" fill="#ff8c1a"/><path class="flame" d="M ${X + dx} ${Y} q ${-4 * sc} ${-6 * sc} 0 ${-14 * sc} q ${4 * sc} ${8 * sc} 0 ${14 * sc} z" fill="#ffe14d"/>`;
+  return `<g>${f(-12, 1)}${f(4, 1.3)}${f(16, 0.9)}<circle class="smoke" cx="${X}" cy="${Y - 30}" r="8" fill="#555"/><circle class="smoke d2" cx="${X + 6}" cy="${Y - 30}" r="8" fill="#555"/></g>`;
+}
+function attackerSprite(pid) {
+  const p = PERSONAS[pid] || PERSONAS.phil, nw = 10 + p.short.length * 7.2;
+  const grunt = (dx, dy) => `<g transform="translate(${dx} ${dy})"><ellipse cx="0" cy="3" rx="5" ry="2.2" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-4.5" y="-10" width="9" height="12" rx="4" fill="${p.color}" stroke="#1a130c"/><circle cx="0" cy="-13" r="4.8" fill="#1a130c"/><circle cx="-1.6" cy="-13" r="1.1" fill="#ff4d4d"/><circle cx="1.6" cy="-13" r="1.1" fill="#ff4d4d"/></g></g>`;
+  return grunt(-14, 6) + grunt(12, 8) +
+    `<g transform="scale(1.45)"><ellipse cx="0" cy="3" rx="6" ry="2.5" fill="rgba(0,0,0,0.3)"/><g class="bob"><rect x="-5.5" y="-12" width="11" height="14" rx="4" fill="${p.color}" stroke="#1a130c"/><circle cx="0" cy="-15.5" r="5.5" fill="${p.skin}" stroke="#1a130c"/><path d="M-6 -15 Q-6 -23 0 -23 Q6 -23 6 -15 Q3 -19 0 -19 Q-3 -19 -6 -15 Z" fill="${shade(p.color, -0.35)}"/><circle cx="-2" cy="-15" r="1" fill="#1a130c"/><circle cx="2" cy="-15" r="1" fill="#1a130c"/></g></g>` +
+    `<g transform="translate(0 -46)"><rect x="${-nw / 2}" y="-12" width="${nw}" height="16" rx="8" fill="#1a130c" stroke="${p.color}" stroke-width="2"/><text x="0" y="0" text-anchor="middle" font-size="11" fill="#fff" font-family="Nunito, sans-serif" font-weight="800">${esc(p.short)}</text></g>`;
+}
+function moveEl(el, from, to, ms) {
+  if (REDUCED_M || !el.animate) { el.setAttribute("transform", `translate(${to[0]} ${to[1]})`); return Promise.resolve(); }
+  return el.animate([{ transform: `translate(${from[0]}px, ${from[1]}px)` }, { transform: `translate(${to[0]}px, ${to[1]}px)` }], { duration: ms, fill: "forwards", easing: "linear" }).finished.catch(() => {});
+}
+function floatText(x, y, txt, col) {
+  const fx = $("layer-fx"), t = document.createElementNS(SVGNS, "text");
+  t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "18");
+  t.setAttribute("fill", col); t.setAttribute("stroke", "#fff"); t.setAttribute("stroke-width", "4"); t.setAttribute("paint-order", "stroke");
+  t.textContent = txt; fx.appendChild(t);
+  if (!REDUCED_M && t.animate) t.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-36px)", opacity: 0 }], { duration: 1700, fill: "forwards" });
+  setTimeout(() => t.remove(), 1800);
+}
+function burst(x, y, cols, n, spread) {
+  if (REDUCED_M) return;
+  const fx = $("layer-fx");
+  for (let i = 0; i < n; i++) {
+    const c = document.createElementNS(SVGNS, "circle"), a = (Math.PI * 2 * i) / n, d = spread * (0.5 + Math.random() * 0.6);
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 3 + Math.random() * 3); c.setAttribute("fill", cols[i % cols.length]);
+    c.style.transformBox = "fill-box"; c.style.transformOrigin = "center"; fx.appendChild(c);
+    c.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d * 0.7 - 8}px) scale(0.2)`, opacity: 0 }], { duration: 800, fill: "forwards" });
+    setTimeout(() => c.remove(), 850);
+  }
+}
+async function playOne(a, k2) {
+  const st = S(), [bgx, bgy] = LAYOUT[st][0].slice(1, 3), target = PX(bgx + 0.6, bgy + 0.6);
+  const from = k2 % 2 ? PX(bgx + 0.8, 7.2) : PX(7.2, bgy + 0.8);
+  const mid = [from[0] + (target[0] - from[0]) * 0.55, from[1] + (target[1] - from[1]) * 0.55];
+  const g = document.createElementNS(SVGNS, "g");
+  g.innerHTML = attackerSprite(a.persona); $("layer-fx").appendChild(g);
+  if (a.hit) {
+    await moveEl(g, from, target, 1500);
+    burst(target[0], target[1] - 30, ["#ff8c1a", "#ffe14d", "#5a5a5a", "#d2452f"], 18, 70);
+    floatText(target[0], target[1] - 70, a.label + (a.loss ? " · −" + k(a.loss) : ""), "#d2452f");
+    const box2 = document.querySelector(".stage-box"); if (box2 && !REDUCED_M) { box2.classList.remove("shake"); void box2.offsetWidth; box2.classList.add("shake"); }
+    if (!sceneFire) { sceneFire = true; renderScene(); }
+    await wait(900);
+  } else {
+    await moveEl(g, from, mid, 1200);
+    const idx = MEASURES.findIndex((m) => m.id === a.block);
+    if (idx >= 0) {
+      const [px, py] = PX(...SLOTS[idx]), col = FN_COLOR[MB[a.block].fn];
+      const beam = document.createElementNS(SVGNS, "line");
+      beam.setAttribute("x1", px); beam.setAttribute("y1", py - 26); beam.setAttribute("x2", mid[0]); beam.setAttribute("y2", mid[1] - 12);
+      beam.setAttribute("stroke", col); beam.setAttribute("stroke-width", "5"); beam.setAttribute("stroke-linecap", "round");
+      $("layer-fx").appendChild(beam); setTimeout(() => beam.remove(), 600);
+      burst(mid[0], mid[1] - 10, [col, "#ffffff", "#7df9ff"], 14, 40);
+    }
+    floatText(mid[0], mid[1] - 54, "Bloqué : " + (a.block ? MB[a.block].name.split(" ")[0] + "…" : a.label), "#2f8f46");
+    if (!REDUCED_M && g.animate) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
+    await wait(700);
+  }
+  g.remove();
+}
+function playAttacks() {
+  if (!G || G.phase !== "event" || !G.report || animatedFor === G.period) return;
+  animatedFor = G.period;
+  const r = G.report, t = PERIODS[G.period - 1].threat, seq = [];
+  const firstBlock = t.protect.find((id) => G.built[id]);
+  seq.push({ persona: t.persona || "crypto", label: t.title, hit: r.loss > 0, loss: r.loss, block: r.loss > 0 ? null : firstBlock });
+  (r.gaps || []).forEach((g) => seq.push({ persona: GAPS[g.id].persona, label: GAPS[g.id].title, hit: true, loss: g.loss }));
+  (r.blocked || []).forEach((id) => seq.push({ persona: GAPS[id].persona, label: GAPS[id].title, hit: false, block: id }));
+  animChain = animChain.then(async () => { for (let i = 0; i < seq.length; i++) { if (!G || G.phase === "build" || G.phase === "growth") break; await playOne(seq[i], i); } });
 }
 
 // ================= rendu =================
@@ -667,6 +799,13 @@ function renderPanel() {
       ${th.reducers.map((x) => `<span class="sub">${esc(x)}</span>`).join("")}
       <p class="outcome ${cls}">${th.loss === 0 ? "Aucun dégât : vos mesures ont tenu." : `Dégâts : −${k(th.loss)} · confiance −${th.confLoss} pts`}</p>
       <p class="lesson">${esc(t.lesson)}</p></div>`;
+    const gaps = r.gaps || [], blocked = r.blocked || [];
+    html += `<div class="event threat"><span class="eyebrow" style="color:var(--red)">Attaques opportunistes</span>
+      <h2>${gaps.length ? `${gaps.length} faille${gaps.length > 1 ? "s" : ""} exploitée${gaps.length > 1 ? "s" : ""}` : "Aucune faille à exploiter"}</h2>
+      <p class="sub">Chaque mesure attendue à ce palier mais absente attire des attaquants (jusqu'à ${gapCap()} par semestre à ce palier).</p>
+      ${gaps.map((g) => { const a = GAPS[g.id]; return `<div class="gap"><span class="gap-p">${portrait(a.persona)}</span><div><b>${esc(a.title)}</b> <span class="minus">−${k(g.loss)}</span><p class="sub">${esc(a.text)}</p><p class="sub">Faille : ${esc(MB[g.id].name)} manquante.</p></div></div>`; }).join("")}
+      ${blocked.length ? `<div class="cover">${blocked.map((id) => `<span class="y">✓ ${esc(GAPS[id].title)} : repoussé par ${esc(MB[id].name)}</span>`).join("")}</div>` : ""}
+      ${!gaps.length ? `<p class="outcome good">Les attaquants opportunistes passent leur chemin : rien d'attendu ne manque.</p>` : `<p class="outcome bad">Dégâts : −${k(r.gapLoss)} · confiance −${gaps.length * 3} pts</p>`}</div>`;
     if (ev.opp) {
       const o = ev.opp, op = r.op;
       html += `<div class="event opp"><span class="eyebrow" style="color:var(--blue)">Opportunité</span><h2>${esc(o.title)}</h2><p>${esc(o.text)}</p>
@@ -682,7 +821,7 @@ function renderPanel() {
     const r = G.report, last = G.period >= 10 || G.treso < 0;
     const row = (l, v) => `<tr><td>${l}</td><td class="${v >= 0 ? "plus" : "minus"}">${v >= 0 ? "+" : "−"}${k(Math.abs(v))}</td></tr>`;
     p.innerHTML = `<span class="eyebrow">Semestre ${G.period} · bilan</span><h2>Les comptes du semestre</h2>
-      <table class="ledger">${row("Marge de l'activité", r.margin)}${row("Entretien des mesures de sécurité", -r.up)}${r.loss ? row("Dégâts de l'incident", -r.loss) : ""}${r.opp ? row("Opportunité", r.opp) : ""}
+      <table class="ledger">${row("Marge de l'activité", r.margin)}${row("Entretien des mesures de sécurité", -r.up)}${r.loss ? row("Dégâts de l'incident", -r.loss) : ""}${r.gapLoss ? row("Failles exploitées", -r.gapLoss) : ""}${r.opp ? row("Opportunité", r.opp) : ""}
       <tr class="total"><td>Trésorerie</td><td class="${G.treso >= 0 ? "plus" : "minus"}">${k(G.treso)}</td></tr></table>
       <p class="sub">Confiance clients : ${G.conf} %${r.matBonus ? " (+3 grâce à une maturité d'au moins 80 %)" : ""} · Maturité CyFun Small : ${r.mat} %</p>
       ${G.treso < 0 ? `<p class="outcome bad">La trésorerie est négative : c'est la faillite.</p>` : ""}
@@ -734,7 +873,7 @@ function renderStart() {
   for (let i = 1; i <= 12; i++) opts += `<option value="t${i}">Table ${i}</option>`;
   el.innerHTML = `<span class="eyebrow">Nouvelle partie</span><h2>Créez votre entreprise</h2>
     <p>Vous fondez l'Atelier Boisvert dans votre garage. En dix semestres, l'entreprise va passer d'une personne à cinquante. À chaque palier, de nouveaux actifs apparaissent et CyFun Small attend de nouvelles mesures.</p>
-    <ul class="clean"><li>À chaque semestre, vous menez un nombre limité de chantiers de sécurité, et pouvez investir dans la croissance.</li><li>Chaque semestre apporte un incident, et parfois une opportunité : la même séquence pour toutes les tables.</li><li>Les mesures coûtent moins cher quand l'entreprise est petite. Mais la trésorerie est serrée.</li><li>Objectif : arriver au palier 5 avec la plus forte valeur d'entreprise, sans faire faillite.</li></ul>
+    <ul class="clean"><li>À chaque semestre, vous menez un nombre limité de chantiers de sécurité, et pouvez investir dans la croissance.</li><li>Chaque semestre apporte un incident, et parfois une opportunité : la même séquence pour toutes les tables.</li><li>Chaque mesure attendue mais absente est une faille : des attaquants viendront l'exploiter.</li><li>Les mesures coûtent moins cher quand l'entreprise est petite. Mais la trésorerie est serrée.</li><li>Objectif : arriver au palier 5 avec la plus forte valeur d'entreprise, sans faire faillite.</li></ul>
     <div class="row"><label for="st-table">Table<select id="st-table">${opts}</select></label><label for="st-name">Nom de l'équipe<input type="text" id="st-name" maxlength="30" placeholder="Ex. Les Menuisiers"></label>
     <button class="btn gold" id="st-go">Créer l'entreprise</button></div>`;
   const prev = tabStore.get("grandit-table"); if (prev) $("st-table").value = prev;
@@ -748,7 +887,9 @@ function renderStart() {
 function render() {
   if (!G) { $("start").hidden = false; $("play").hidden = true; renderStart(); return; }
   $("start").hidden = true; $("play").hidden = false;
+  if (G.phase === "event" && G.report && (G.report.loss > 0 || (G.report.gaps || []).length) && animatedFor === G.period) sceneFire = sceneFire || false;
   renderHUD(); renderScene(); renderPanel(); renderRoadmap();
+  playAttacks();
 }
 
 // ================= classement =================
